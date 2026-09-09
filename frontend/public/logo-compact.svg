@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill="none">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a2540"/>
+      <stop offset="100%" stop-color="#1a5276"/>
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1a8fc4"/>
+      <stop offset="100%" stop-color="#5dade2"/>
+    </linearGradient>
+  </defs>
+  <!-- Circle background -->
+  <circle cx="200" cy="160" r="130" fill="url(#grad1)" opacity="0.95"/>
+  <circle cx="200" cy="160" r="120" fill="none" stroke="url(#grad2)" stroke-width="2"/>
+  <!-- Bar chart -->
+  <rect x="120" y="120" width="14" height="50" rx="2" fill="#5dade2" opacity="0.8"/>
+  <rect x="140" y="100" width="14" height="70" rx="2" fill="#3498db" opacity="0.85"/>
+  <rect x="160" y="85" width="14" height="85" rx="2" fill="#2e86c1" opacity="0.9"/>
+  <rect x="180" y="70" width="14" height="100" rx="2" fill="#2874a6" opacity="0.95"/>
+  <!-- Trend line -->
+  <polyline points="127,118 147,98 167,83 187,68" fill="none" stroke="#5dade2" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="127" cy="118" r="4" fill="#5dade2"/>
+  <circle cx="147" cy="98" r="4" fill="#5dade2"/>
+  <circle cx="167" cy="83" r="4" fill="#5dade2"/>
+  <circle cx="187" cy="68" r="4" fill="#5dade2"/>
+  <!-- Meter body -->
+  <rect x="210" y="100" width="80" height="100" rx="12" fill="#1a5276" stroke="#5dade2" stroke-width="2"/>
+  <rect x="218" y="108" width="64" height="40" rx="6" fill="#0a2540"/>
+  <text x="250" y="135" text-anchor="middle" font-family="monospace" font-size="16" fill="#5dade2" font-weight="bold">00482.6</text>
+  <text x="250" y="148" text-anchor="middle" font-family="sans-serif" font-size="8" fill="#85c1e9">kWh</text>
+  <!-- Meter dots -->
+  <circle cx="225" cy="165" r="3" fill="#5dade2"/>
+  <circle cx="235" cy="165" r="3" fill="#3498db"/>
+  <circle cx="245" cy="165" r="3" fill="#2874a6"/>
+  <!-- City skyline -->
+  <rect x="300" y="130" width="12" height="40" rx="1" fill="#1a5276" opacity="0.6"/>
+  <rect x="316" y="115" width="10" height="55" rx="1" fill="#1a5276" opacity="0.5"/>
+  <rect x="330" y="125" width="14" height="45" rx="1" fill="#1a5276" opacity="0.4"/>
+  <!-- Power lines -->
+  <line x1="340" y1="140" x2="370" y2="130" stroke="#5dade2" stroke-width="1.5" opacity="0.5"/>
+  <line x1="340" y1="150" x2="370" y2="145" stroke="#5dade2" stroke-width="1.5" opacity="0.5"/>
+  <!-- Leaves -->
+  <ellipse cx="350" cy="170" rx="15" ry="8" fill="#1a8fc4" opacity="0.3" transform="rotate(-30 350 170)"/>
+  <ellipse cx="360" cy="160" rx="12" ry="6" fill="#5dade2" opacity="0.25" transform="rotate(-45 360 160)"/>
+  <!-- Waves -->
+  <path d="M80 200 Q120 185 160 200 Q200 215 240 200 Q280 185 320 200" fill="none" stroke="#1a8fc4" stroke-width="3" opacity="0.4"/>
+  <path d="M80 215 Q120 200 160 215 Q200 230 240 215 Q280 200 320 215" fill="none" stroke="#5dade2" stroke-width="2" opacity="0.3"/>
+  <!-- Text: METER -->
+  <text x="80" y="280" font-family="'Arial Black', sans-serif" font-weight="900" font-size="64" fill="#0a2540" letter-spacing="4">METER</text>
+  <!-- Text: IQ with magnifying glass -->
+  <text x="310" y="280" font-family="'Arial Black', sans-serif" font-weight="900" font-size="64" fill="#1a8fc4" letter-spacing="2">IQ</text>
+  <!-- Lightbulb in Q -->
+  <circle cx="370" cy="255" r="12" fill="none" stroke="#1a8fc4" stroke-width="2.5"/>
+  <path d="M365 250 Q370 242 375 250" fill="none" stroke="#5dade2" stroke-width="2" stroke-linecap="round"/>
+  <line x1="370" y1="252" x2="370" y2="258" stroke="#5dade2" stroke-width="1.5"/>
+  <!-- Leaf in bulb -->
+  <ellipse cx="370" cy="248" rx="4" ry="6" fill="#1a8fc4" opacity="0.6" transform="rotate(-15 370 248)"/>
+  <!-- Subtitle line -->
+  <line x1="80" y1="295" x2="400" y2="295" stroke="#1a8fc4" stroke-width="1.5" opacity="0.4"/>
+  <text x="80" y="318" font-family="'Arial', sans-serif" font-weight="600" font-size="14" fill="#1a5276" letter-spacing="6">SMART METER ANALYTICS PLATFORM</text>
+  <!-- Team line -->
+  <line x1="140" y1="338" x2="340" y2="338" stroke="#1a8fc4" stroke-width="1" opacity="0.3"/>
+  <text x="200" y="358" text-anchor="middle" font-family="'Arial', sans-serif" font-weight="600" font-size="12" fill="#5dade2" letter-spacing="2">YASHIT ARORA  |  AARUSHI GAHLAWAT</text>
+  <!-- Tagline -->
+  <text x="200" y="385" text-anchor="middle" font-family="'Arial', sans-serif" font-weight="400" font-size="10" fill="#85c1e9" letter-spacing="3">INSIGHTS FOR A SMARTER TOMORROW</text>
+</svg>
