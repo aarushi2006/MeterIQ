@@ -14,6 +14,7 @@
 \usepackage{enumitem}
 \usepackage{setspace}
 \usepackage{needspace}
+\usepackage{pdflscape}
 
 % =========================================================
 % GENERAL FORMATTING
@@ -113,6 +114,8 @@
 
 \pagestyle{fancy}
 
+\setlength{\headheight}{15pt}
+
 \fancyhf{}
 
 \fancyhead[L]{MeterIQ}
@@ -134,6 +137,7 @@
 % =========================================================
 
 \begin{titlepage}
+\hypersetup{pageanchor=false}
 
 \centering
 
@@ -176,6 +180,7 @@ September 2026
 \par}
 
 \end{titlepage}
+\hypersetup{pageanchor=true}
 
 
 % =========================================================
@@ -281,7 +286,8 @@ The analytics layer consists of two primary modules:
 % USE CASE DIAGRAM
 % ---------------------------------------------------------
 
-\needspace{0.55\textheight}
+\begin{landscape}
+\thispagestyle{empty}
 
 \section{Use Case Diagram}
 
@@ -291,26 +297,40 @@ Smart-Meter Data Source, User and the MeterIQ system.
 \begin{figure}[H]
     \centering
     \includegraphics[
-        width=0.68\textwidth,
-        height=0.34\textheight,
+        width=1.10\textwidth,
+        height=0.74\textheight,
+        trim=35pt 35pt 35pt 25pt,
+        clip,
         keepaspectratio
-    ]{Use Case Diagram.draw.io.pdf}
+    ]{Use Case Diagram.draw.io (3).pdf}
     \caption{MeterIQ Use Case Diagram}
     \label{fig:usecase}
 \end{figure}
+
+\vfill
+\begin{center}
+\thepage
+\end{center}
+
+\end{landscape}
 
 
 % =========================================================
 % CHAPTER 3 -- SYSTEM MODELLING
 % =========================================================
 
+\begin{landscape}
 \chapter{System Modelling}
+\thispagestyle{empty}
+
+This chapter presents the system models that define how MeterIQ components,
+users and data stores interact. The diagrams progress from a high-level data
+flow to detailed processing, the data model and the end-to-end activity
+workflow.
 
 % ---------------------------------------------------------
 % DFD LEVEL 0
 % ---------------------------------------------------------
-
-\needspace{0.42\textheight}
 
 \section{Data Flow Diagram -- Level 0}
 
@@ -318,88 +338,122 @@ The Level 0 Data Flow Diagram provides a high-level representation of the
 MeterIQ system and shows the interaction between the system and its external
 entities.
 
+\vfill
 \begin{figure}[H]
     \centering
     \includegraphics[
-        width=0.70\textwidth,
-        height=0.18\textheight,
+        width=1.30\textwidth,
+        height=0.74\textheight,
+        trim=22pt 215pt 22pt 215pt,
+        clip,
         keepaspectratio
     ]{DataFlowDiagram_level0.pdf}
     \caption{MeterIQ DFD Level 0}
     \label{fig:dfd0}
 \end{figure}
 
+\vfill
+\begin{center}
+\thepage
+\end{center}
+\clearpage
+\thispagestyle{empty}
+
 % ---------------------------------------------------------
 % DFD LEVEL 1
 % ---------------------------------------------------------
-
-\needspace{0.47\textheight}
 
 \section{Data Flow Diagram -- Level 1}
 
 The Level 1 DFD provides a detailed representation of the major processes
 involved in smart meter data analysis.
 
+\vfill
 \begin{figure}[H]
     \centering
     \includegraphics[
-        width=0.78\textwidth,
-        height=0.28\textheight,
+        width=1.30\textwidth,
+        height=0.74\textheight,
+        trim=18pt 120pt 18pt 120pt,
+        clip,
         keepaspectratio
-    ]{DataFlowDiagramLevel1.drawio.pdf}
+    ]{DataFlowDiagramLevel1.drawio (1).pdf}
     \caption{MeterIQ DFD Level 1}
     \label{fig:dfd1}
 \end{figure}
 
+\vfill
+\begin{center}
+\thepage
+\end{center}
+\clearpage
+\thispagestyle{empty}
+
 % ---------------------------------------------------------
 % DFD LEVEL 2
 % ---------------------------------------------------------
-
-\needspace{0.47\textheight}
 
 \section{Data Flow Diagram -- Level 2}
 
 The Level 2 DFD further decomposes the anomaly and theft-risk detection
 process and represents the flow of information between its components.
 
+\vfill
 \begin{figure}[H]
     \centering
     \includegraphics[
-        width=0.78\textwidth,
-        height=0.28\textheight,
+        width=1.30\textwidth,
+        height=0.74\textheight,
+        trim=20pt 195pt 20pt 195pt,
+        clip,
         keepaspectratio
-    ]{DataFlowDiagLevel2.drawio.pdf}
+    ]{DataFlowDiagLevel2.drawio (1).pdf}
     \caption{MeterIQ DFD Level 2}
     \label{fig:dfd2}
 \end{figure}
 
+\vfill
+\begin{center}
+\thepage
+\end{center}
+\clearpage
+\thispagestyle{empty}
+
 % ---------------------------------------------------------
 % ER DIAGRAM
 % ---------------------------------------------------------
-
-\needspace{0.52\textheight}
 
 \section{Entity Relationship Diagram}
 
 The Entity Relationship Diagram represents the major data entities and their
 relationships used in the MeterIQ system.
 
+\vfill
 \begin{figure}[H]
     \centering
     \includegraphics[
-        width=0.72\textwidth,
-        height=0.35\textheight,
+        width=1.10\textwidth,
+        height=0.74\textheight,
+        trim=20pt 20pt 20pt 20pt,
+        clip,
         keepaspectratio
     ]{ER_Diagram_MeterIQ.pdf}
     \caption{MeterIQ Entity Relationship Diagram}
     \label{fig:erd}
 \end{figure}
 
+\vfill
+\begin{center}
+\thepage
+\end{center}
+
+\end{landscape}
+
 % ---------------------------------------------------------
 % ACTIVITY DIAGRAM
 % ---------------------------------------------------------
 
-\needspace{0.55\textheight}
+\needspace{0.90\textheight}
 
 \section{Activity Diagram}
 
@@ -410,8 +464,10 @@ analytical results.
 \begin{figure}[H]
     \centering
     \includegraphics[
-        width=0.72\textwidth,
-        height=0.38\textheight,
+        width=0.90\textwidth,
+        height=0.78\textheight,
+        trim=20pt 110pt 20pt 110pt,
+        clip,
         keepaspectratio
     ]{Activity_Diagram_MeterIQ.pdf}
     \caption{MeterIQ Activity Diagram}
@@ -510,7 +566,9 @@ different prototype roles, including Supervisor and Data Analyst.
 \begin{figure}[H]
     \centering
     \includegraphics[
-        width=0.50\textwidth,
+        width=0.62\textwidth,
+        trim=420pt 285pt 556pt 333pt,
+        clip,
         height=0.34\textheight,
         keepaspectratio
     ]{login.png}
@@ -567,10 +625,10 @@ evaluation metrics and the predicted load profile for the selected meter.
 
 
 % =========================================================
-% CHAPTER 5 -- CURRENT PROGRESS
+% CHAPTER 5 -- CURRENT PROGRESS AND FUTURE WORK
 % =========================================================
 
-\chapter{Current Progress}
+\chapter{Current Progress and Future Work}
 
 The current prototype development includes the following completed or
 developed components:
@@ -603,10 +661,10 @@ rather than the final project evaluation.
 
 
 % =========================================================
-% CHAPTER 6 -- FUTURE WORK
+% FUTURE WORK
 % =========================================================
 
-\chapter{Future Work}
+\section{Future Work}
 
 The planned future work for MeterIQ includes:
 
@@ -636,6 +694,7 @@ UCS503 Software Engineering course material,
 Thapar Institute of Engineering and Technology.
 
 \bibitem{github}
+\raggedright
 MeterIQ project repository:
 \url{https://github.com/aarushi2006/ucs503p-202627odd-MeterIQ}
 
