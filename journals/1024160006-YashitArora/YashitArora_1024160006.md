@@ -1,128 +1,148 @@
 # WEEKLY UPDATE of Yashit Arora (1024160006)
 
-## 25/08/2026 — Use Case Diagram
+## 25/08/2026 — Use Case Diagram Development
 
-Made the Use Case Diagram for the MeterIQ project and identified the major
-system functionalities and user interactions.
+**Work Done:**  
+Started working on the use case diagram for MeterIQ. Identified the main users of the system and the key activities they would perform, such as viewing meter information, checking anomalies, and accessing forecasting results. Organised the use cases to explain the overall functionality of the platform.
 
-### Work Completed
-- Identified the major functionalities of the MeterIQ system.
-- Designed the Use Case Diagram representing the interaction between users
-  and the system.
-- Defined the major user interactions with the MeterIQ platform.
-- Studied how anomaly/risk detection, load forecasting, and decision support
-  fit into the overall system workflow.
+**Learning/Outcome:**  
+Understood how a use case diagram represents the interaction between users and the system and helps define the project scope.
 
-### Learning
-Understood how Use Case Diagrams represent system functionality from the
-user's perspective and how system requirements can be represented as
-interactions between actors and the system.
+---
 
-### Challenges Faced
-- Identifying the appropriate actors and system functionalities.
-- Representing the complete project workflow without making the diagram
-  unnecessarily complex.
-- Maintaining consistency between the proposed functionality and the
-  overall system design.
+## 30/08/2026 — Initial Dataset and System Understanding
 
+**Work Done:**  
+Reviewed the project requirements and explored the smart meter data used in MeterIQ. Developed a basic understanding of the type of consumption information available and how it could support anomaly detection and load forecasting. Discussed how the processed information could eventually be presented through the dashboard.
 
-## 30/08/2026 — Dataset Exploration
+**Learning/Outcome:**  
+Gained a clearer understanding of the project data and the relationship between smart meter information, analytics, and the user interface.
 
-Explored the available smart-meter datasets and studied their structure,
-attributes, timestamps, consumption values, and suitability for the project's
-ML tasks.
-
-### Work Completed
-- Examined the available smart-meter datasets.
-- Studied important attributes such as meter ID, timestamp, and consumption.
-- Analysed the time-series nature of the smart-meter data.
-- Studied how the dataset could support anomaly/risk detection and
-  short-term load forecasting.
-- Discussed the overall project workflow and development requirements.
-
-### Learning
-Developed a better understanding of smart-meter datasets and how the same
-time-series data can support different analytical tasks.
-
-### Challenges Faced
-- Understanding the time-series structure of the data.
-- Determining which data attributes are useful for the two ML tasks.
-- Understanding how the dataset should be prepared before model development.
-
+---
 
 ## 09/09/2026 — Dashboard Development
 
-### Work Completed
-- Developed the MeterIQ frontend dashboard using React and Vite.
-- Designed the dashboard layout with sidebar navigation and reusable UI
-  components.
-- Implemented meter search, meter information, statistics, consumption
-  charts, and anomaly/risk visualisation.
-- Created separate Dashboard, Meter Analysis, and supporting interfaces.
-- Added responsive styling for different screen sizes.
-- Used mock data to test the frontend before connecting the ML and backend
-  components.
-- Configured the frontend for deployment through GitHub Pages.
-- Successfully added the frontend to the shared MeterIQ GitHub repository.
+**Work Done:**  
+Started developing the React-based dashboard for MeterIQ. Worked on the overall page layout, navigation, and presentation of meter-related information. Planned sections for dashboard summaries, anomaly analysis, and load forecasting so users could access the important information in an organised manner.
 
-### Challenges Faced
-- Designing the dashboard before the ML and backend components were ready,
-  requiring the use of mock data.
-- Deciding how to present consumption, anomaly/risk, and meter information
-  clearly without making the interface complex.
-- Structuring the React application into reusable components.
-- Resolving GitHub synchronization and authentication issues while adding
-  the frontend.
-- Fixing npm installation and project-directory issues during local setup.
+**Learning/Outcome:**  
+Learned how to structure a dashboard using React and how UI design can make technical information easier to understand.
 
-### Current Status
-The Phase 1 frontend dashboard has been successfully developed, tested
-locally, and added to the shared MeterIQ repository.
+---
 
-### Next Steps
-- Connect the processed smart-meter data with the analytical pipeline.
-- Implement anomaly/risk detection and short-term load forecasting.
-- Connect the ML outputs with the dashboard.
-- Perform system integration and testing.
+## 14/09/2026 — Project Documentation and Gantt Chart
 
+**Work Done:**  
+Worked on the project documentation and prepared the Gantt chart to organise the major project activities. Identified important milestones, divided the work into manageable stages, and documented the planned development sequence.
 
-## 14/09/2026 — Project Documentation & Gantt Chart
+**Learning/Outcome:**  
+Understood the importance of project scheduling, task distribution, and documentation in tracking progress throughout software development.
 
-### Work Completed
-- Created and updated the project Gantt Chart according to the current
-  development progress.
-- Documented the completed project activities and assigned responsibilities
-  between the team members.
-- Started preparing the MeterIQ prototype report using LaTeX and Overleaf.
-- Added the system diagrams and frontend prototype screenshots to the report.
-- Structured the report according to the Software Engineering prototype
-  requirements.
-- Worked on organising the report pages, headings, diagrams, captions, and
-  screenshots for a professional presentation.
-- Updated the shared project documentation according to the latest
-  development status.
+---
 
-### Learning
-Learned how to organise software engineering project documentation,
-maintain a development schedule using a Gantt Chart, and structure a
-technical prototype report using LaTeX.
+## 21/09/2026 — Initial Backend Understanding and Planning
 
-### Challenges Faced
-- Maintaining consistent formatting and alignment of diagrams in the
-  LaTeX report.
-- Managing different diagram formats and ensuring they fit properly within
-  the report pages.
-- Keeping the documentation consistent with the actual project progress.
-- Coordinating documentation work with the development activities being
-  completed by both team members.
+**Work Done:**  
+Started exploring the backend requirements of MeterIQ and how the frontend would communicate with the server. Reviewed the information the dashboard would need, including meter details, anomaly counts, risk levels, and forecasting information. Planned how these details could be obtained from backend APIs instead of relying only on static prototype values.
 
-### Current Status
-The Gantt Chart and major parts of the prototype documentation have been
-prepared. The frontend prototype is also completed and available in the
-shared repository.
+**Learning/Outcome:**  
+Developed an initial understanding of frontend-backend communication, API responses, and the role of the backend in providing data to the dashboard.
 
-### Next Steps
-- Complete the anomaly/risk detection ML module.
-- Complete the short-term load forecasting ML module.
-- Integrate the ML outputs with the frontend dashboard.
-- Perform testing and evaluate the integrated system.
+---
+
+## 28/09/2026 — Understanding the Data and ML Output Requirements
+
+**Work Done:**  
+Reviewed the smart meter data structure and discussed how analytical outputs could be used in the application. Focused on understanding the meaning of anomaly flags, risk levels, and forecasting results at a basic level. Considered which outputs would be useful to display to users and how they could be presented clearly in the dashboard.
+
+**Learning/Outcome:**  
+Understood the connection between the project's analytical component and its user interface, including the importance of presenting results in a meaningful and understandable format.
+
+---
+
+## 05/10/2026 — Frontend and Backend Integration Planning
+
+**Work Done:**  
+Reviewed the dashboard components and identified the information each section would require from the backend. Started planning the integration flow between React components and API endpoints. Considered how loading states, missing values, and unavailable data should be handled to avoid displaying misleading information.
+
+**Learning/Outcome:**  
+Learned the importance of consistent API responses and proper error handling when connecting a frontend application to a backend service.
+
+---
+
+## 12/10/2026 — Dashboard Data Flow and System Design Review
+
+**Work Done:**  
+Reviewed the flow of information through MeterIQ, from smart meter data processing to analytical outputs and dashboard presentation. Worked on aligning the system design and documentation with the intended application workflow. Considered how users would move from an overall dashboard view to more detailed meter and anomaly information.
+
+**Learning/Outcome:**  
+Improved my understanding of system-level data flow and the importance of keeping diagrams, requirements, and the actual interface consistent.
+
+---
+
+## 19/10/2026 — Initial Backend Exploration
+
+**Work Done:**  
+Started examining the backend structure and the available API functionality for MeterIQ. Explored how meter information and pipeline status could be exposed to the frontend. Reviewed the expected response fields and considered how the dashboard could use these responses to display system status and meter-related information.
+
+**Learning/Outcome:**  
+Gained practical exposure to backend API structure and learned how API responses support communication between different parts of a software system.
+
+---
+
+## 22/10/2026 — Understanding Anomaly and Risk Information for the Dashboard
+
+**Work Done:**  
+Reviewed how anomaly detection results and risk-related information would be represented in the MeterIQ interface. Considered how anomaly counts, risk categories, and supporting information could help users identify meters requiring further attention. Coordinated the dashboard requirements with the expected outputs from the project's ML component.
+
+**Learning/Outcome:**  
+Developed a basic understanding of how ML-generated results can be communicated through a software application. Focused on their interpretation and presentation rather than implementing the complete ML models.
+
+---
+
+## 24/10/2026 — Dashboard Enhancement and UI/UX Improvements
+
+**Work Done:**  
+Reviewed and refined the dashboard layout to improve readability, navigation, and overall presentation. Worked on arranging information into clearer sections and making the interface more suitable for a professional smart meter analytics platform. Considered how important metrics and status information should be displayed.
+
+**Learning/Outcome:**  
+Improved my understanding of UI/UX design and how a clear interface helps users interpret technical information more efficiently.
+
+---
+
+## 26/10/2026 — System Design and Documentation Alignment
+
+**Work Done:**  
+Reviewed the project diagrams and documentation to ensure that they represented the planned MeterIQ workflow consistently. Examined the relationship between data sources, processing stages, analytical outputs, and dashboard decision support. Identified areas where the system design could be explained more clearly in the project report.
+
+**Learning/Outcome:**  
+Understood the importance of maintaining consistency between system diagrams, functional requirements, and implementation planning.
+
+---
+
+## 27/10/2026 — UML Sequence Diagram Development
+
+**Work Done:**  
+Worked on preparing the UML sequence diagram for the anomaly and theft-risk detection workflow. Used the Level 2 Data Flow Diagram as a reference to identify the relevant participants and sequence of interactions. Represented the flow involving engineered features, unusual consumption detection, risk-score calculation, explainable evidence, storage of results, and dashboard decision support.
+
+**Learning/Outcome:**  
+Learned how a sequence diagram represents the order of interactions between system components and how it complements a data flow diagram by showing the sequence of messages.
+
+---
+
+## 28/10/2026 — Project Journal and Prototype Documentation Update
+
+**Work Done:**  
+Reviewed and organised the project journal and prototype documentation. Updated the description of completed design and dashboard activities and recorded the initial backend exploration and work related to understanding analytical outputs. Checked that the documented responsibilities and system workflow were clearly described.
+
+**Learning/Outcome:**  
+Improved my understanding of technical documentation and the importance of maintaining an accurate record of individual contributions and project progress.
+
+---
+
+## Overall Progress
+
+During this period, my work on MeterIQ focused mainly on use case modelling, React dashboard development, system design, project scheduling, documentation, and UML sequence diagram preparation. I also began exploring backend API requirements and gained a basic understanding of how ML outputs such as anomaly flags, risk levels, and forecasts would be consumed and presented by the application.
+
+The work helped me understand how frontend development, backend communication, system modelling, and analytical components fit together to form a complete software system.
+
