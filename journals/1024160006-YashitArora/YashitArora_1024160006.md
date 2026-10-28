@@ -70,16 +70,6 @@ Learned the importance of consistent API responses and proper error handling whe
 
 ---
 
-## 12/10/2026 — Dashboard Data Flow and System Design Review
-
-**Work Done:**  
-Reviewed the flow of information through MeterIQ, from smart meter data processing to analytical outputs and dashboard presentation. Worked on aligning the system design and documentation with the intended application workflow. Considered how users would move from an overall dashboard view to more detailed meter and anomaly information.
-
-**Learning/Outcome:**  
-Improved my understanding of system-level data flow and the importance of keeping diagrams, requirements, and the actual interface consistent.
-
----
-
 ## 19/10/2026 — Initial Backend Exploration
 
 **Work Done:**  
@@ -90,37 +80,7 @@ Gained practical exposure to backend API structure and learned how API responses
 
 ---
 
-## 22/10/2026 — Understanding Anomaly and Risk Information for the Dashboard
-
-**Work Done:**  
-Reviewed how anomaly detection results and risk-related information would be represented in the MeterIQ interface. Considered how anomaly counts, risk categories, and supporting information could help users identify meters requiring further attention. Coordinated the dashboard requirements with the expected outputs from the project's ML component.
-
-**Learning/Outcome:**  
-Developed a basic understanding of how ML-generated results can be communicated through a software application. Focused on their interpretation and presentation rather than implementing the complete ML models.
-
----
-
-## 24/10/2026 — Dashboard Enhancement and UI/UX Improvements
-
-**Work Done:**  
-Reviewed and refined the dashboard layout to improve readability, navigation, and overall presentation. Worked on arranging information into clearer sections and making the interface more suitable for a professional smart meter analytics platform. Considered how important metrics and status information should be displayed.
-
-**Learning/Outcome:**  
-Improved my understanding of UI/UX design and how a clear interface helps users interpret technical information more efficiently.
-
----
-
-## 26/10/2026 — System Design and Documentation Alignment
-
-**Work Done:**  
-Reviewed the project diagrams and documentation to ensure that they represented the planned MeterIQ workflow consistently. Examined the relationship between data sources, processing stages, analytical outputs, and dashboard decision support. Identified areas where the system design could be explained more clearly in the project report.
-
-**Learning/Outcome:**  
-Understood the importance of maintaining consistency between system diagrams, functional requirements, and implementation planning.
-
----
-
-## 27/10/2026 — UML Sequence Diagram Development
+## 20/10/2026 — UML Sequence Diagram Development
 
 **Work Done:**  
 Worked on preparing the UML sequence diagram for the anomaly and theft-risk detection workflow. Used the Level 2 Data Flow Diagram as a reference to identify the relevant participants and sequence of interactions. Represented the flow involving engineered features, unusual consumption detection, risk-score calculation, explainable evidence, storage of results, and dashboard decision support.
@@ -130,15 +90,6 @@ Learned how a sequence diagram represents the order of interactions between syst
 
 ---
 
-## 28/10/2026 — Project Journal and Prototype Documentation Update
-
-**Work Done:**  
-Reviewed and organised the project journal and prototype documentation. Updated the description of completed design and dashboard activities and recorded the initial backend exploration and work related to understanding analytical outputs. Checked that the documented responsibilities and system workflow were clearly described.
-
-**Learning/Outcome:**  
-Improved my understanding of technical documentation and the importance of maintaining an accurate record of individual contributions and project progress.
-
----
 
 ## Overall Progress
 
