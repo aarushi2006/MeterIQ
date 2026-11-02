@@ -1,24 +1,19 @@
-const features = [
+const usecases = [
   {
-    icon: "⌁",
-    title: "Identify patterns",
-    desc: "Surface unusual consumption trends for human review.",
+    tag: "UC1",
+    title: "Anomaly / Theft-Risk Detection",
+    desc: "Flags meters with unusual consumption for human review. The system reports risk indicators such as \"Anomaly Detected\" or \"Requires Investigation\" — it never labels a consumer as confirmed to be stealing electricity. That determination stays with a human investigator after physical verification.",
   },
   {
-    icon: "✦",
-    title: "Explain decisions",
-    desc: "Show clear, non-technical reasons behind every risk signal.",
-  },
-  {
-    icon: "▦",
-    title: "Plan demand",
-    desc: "Support capacity planning with load forecasts.",
+    tag: "UC2",
+    title: "Short-Term Load Forecasting",
+    desc: "Predicts electricity demand 15 minutes to 24 hours ahead to support grid capacity planning, using a same-hour-last-week baseline compared against ML forecasting models.",
   },
 ];
 
 const team = [
-  { name: "Yashit Arora" },
-  { name: "Aarushi Gahlawat" },
+  { name: "Yashit Arora", roll: "1024160006" },
+  { name: "Aarushi Gahlawat", roll: "1024160008" },
 ];
 
 export default function About() {
@@ -26,21 +21,26 @@ export default function About() {
     <section className="about">
       <div className="about-hero">
         <label>ABOUT METERIQ</label>
-        <h1>Explainable smart-meter intelligence.</h1>
+        <h1>Explainable Smart Meter Analytics Platform</h1>
         <p>
-          MeterIQ brings consumption monitoring, anomaly-risk assessment, and
-          short-term forecasting into one utility operations workspace.
+          A smart-meter analytics system for identifying anomalous consumption patterns and
+          forecasting short-term electricity demand, built as a Software Engineering (UCS503)
+          project at Thapar Institute of Engineering and Technology.
         </p>
       </div>
-      <div className="about-features">
-        {features.map((f) => (
-          <article key={f.title} className="about-feature-card">
-            <div className="about-feature-icon">{f.icon}</div>
-            <h2>{f.title}</h2>
-            <p>{f.desc}</p>
-          </article>
+
+      <div className="about-usecases">
+        {usecases.map((u) => (
+          <div className="about-usecase-row" key={u.tag}>
+            <div className="about-usecase-tag">{u.tag}</div>
+            <div>
+              <h3>{u.title}</h3>
+              <p>{u.desc}</p>
+            </div>
+          </div>
         ))}
       </div>
+
       <div className="about-tech">
         <h2>Built with</h2>
         <div className="tech-tags">
@@ -48,10 +48,16 @@ export default function About() {
           <span className="tech-tag">Vite</span>
           <span className="tech-tag">Recharts</span>
           <span className="tech-tag">Python</span>
+          <span className="tech-tag">pandas</span>
           <span className="tech-tag">scikit-learn</span>
-          <span className="tech-tag">PyTorch</span>
         </div>
+        <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "10px" }}>
+          The frontend currently runs on a local prototype dataset. The Python preprocessing
+          and ML pipeline (feature engineering, anomaly detection, forecasting) is being
+          developed separately and is not yet connected to this dashboard.
+        </p>
       </div>
+
       <div className="about-team">
         <h2>Team</h2>
         <div className="about-team-grid">
@@ -62,6 +68,7 @@ export default function About() {
               </div>
               <div>
                 <strong>{m.name}</strong>
+                <small style={{ display: "block", color: "var(--text-muted)" }}>{m.roll}</small>
               </div>
             </article>
           ))}
