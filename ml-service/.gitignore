@@ -1,0 +1,20 @@
+# Raw and generated data - large, regenerable, not source
+data/*.csv
+data/cache/
+data/output/
+logs/
+
+# Model artifacts (Phase B+)
+models/
+evaluation/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+
+# OS
+.DS_Store

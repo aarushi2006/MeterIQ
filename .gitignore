@@ -479,3 +479,45 @@ TSWLatexianTemp*
 # Uncomment the next line to have this generated file ignored.
 #*Notes.bib
  
+# MeterIQ local environments
+.venv/
+.venv-1/
+venv/
+env/
+backend/node_modules/
+frontend/node_modules/
+ml-service/.venv/
+ml-service/venv/
+
+# Local environment variables and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Build outputs
+dist/
+frontend/dist/
+backend/dist/
+ml-service/__pycache__/
+
+# Local editor files
+.vscode/
+
+# Generated archives - do not upload
+*.zip
+
+# Local datasets and generated outputs
+data/
+
+# Backend secrets
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Python test cache
+.pytest_cache/
+**/.pytest_cache/
+
+# Nested source archives
+backend/src.zip

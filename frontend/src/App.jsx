@@ -1,88 +1,224 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
-import ToastContainer, { useToast } from "./components/Toast";
+import { ToastProvider, useToast } from "./components/Toast";
+import { LoadingState } from "./components/StateViews";
 import Dashboard from "./pages/Dashboard";
+import MetersPage from "./pages/MetersPage";
 import MeterAnalysis from "./pages/MeterAnalysis";
-import MeterHealth from "./pages/MeterHealth";
-import AlertsPage from "./pages/AlertsPage";
+import ConsumptionAnalytics from "./pages/ConsumptionAnalytics";
+import AnomalyDetection from "./pages/AnomalyDetection";
+import ForecastingPage from "./pages/ForecastingPage";
+import InvestigationsPage from "./pages/InvestigationsPage";
 import Reports from "./pages/Reports";
+import DataQualityPage from "./pages/DataQualityPage";
+import MeterHealth from "./pages/MeterHealth";
 import Settings from "./pages/Settings";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import About from "./pages/About";
-import { meters } from "./data/mockData";
+import { authService } from "./services/authService";
+import { getPreferences } from "./services/preferences";
 import "./styles.css";
 
-export default function App() {
+function AppShell() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [booting, setBooting] = useState(true);
+  const [authView, setAuthView] = useState("login");
   const [page, setPage] = useState("dashboard");
-  const [selectedMeter, setSelectedMeter] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const { toasts, addToast } = useToast();
+  const [selectedMeterId, setSelectedMeterId] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [compactTables, setCompactTables] = useState(
+    () => getPreferences().compactTables
+  );
+  const { addToast } = useToast();
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1200);
-    return () => clearTimeout(timer);
+    function handlePreferences() {
+      setCompactTables(getPreferences().compactTables);
+    }
+    window.addEventListener("meteriq:preferences", handlePreferences);
+    return () =>
+      window.removeEventListener("meteriq:preferences", handlePreferences);
   }, []);
 
-  const openMeter = (meter) => {
-    setSelectedMeter(meter);
-    setPage("analysis");
-    addToast(`Viewing meter ${meter.id}`, "info");
-  };
+  useEffect(() => {
+    let active = true;
 
-  const openMeterById = (id) => {
-    const meter = meters.find((m) => m.id === id);
-    if (meter) openMeter(meter);
-  };
-
-  const backToDashboard = () => {
-    setSelectedMeter(null);
-    setPage("dashboard");
-  };
-
-  const renderPage = () => {
-    if (loading) {
-      return (
-        <div className="loading-screen">
-          <div className="loading-spinner" />
-          <p>Loading MeterIQ...</p>
-        </div>
-      );
+    async function restore() {
+      const user = await authService.validateSession();
+      if (!active) return;
+      setCurrentUser(user);
+      setBooting(false);
     }
 
+    restore();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleUnauthorized() {
+      setCurrentUser(null);
+      setPage("dashboard");
+      setAuthView("login");
+      addToast("Your session expired. Please sign in again.", "warning");
+    }
+
+    window.addEventListener("meteriq:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("meteriq:unauthorized", handleUnauthorized);
+  }, [addToast]);
+
+  const handleLogin = (user) => {
+    setCurrentUser(user);
+    setPage("dashboard");
+    addToast(`Signed in as ${user.fullName || user.email} (${user.role})`, "success");
+  };
+
+  const handleSignup = (user) => {
+    setCurrentUser(user);
+    setPage("dashboard");
+    addToast(`Account created — signed in as ${user.fullName || user.email}`, "success");
+  };
+
+  const handleLogout = async () => {
+    await authService.logout();
+    setCurrentUser(null);
+    setPage("dashboard");
+    setSelectedMeterId(null);
+    addToast("Logged out successfully", "info");
+  };
+
+  const openMeter = useCallback((meter) => {
+    const id = meter?.meter_id || meter?.id;
+    if (!id) {
+      addToast("This record does not have a meter identifier.", "error");
+      return;
+    }
+    setSelectedMeterId(id);
+    setPage("meter-detail");
+  }, [addToast]);
+
+  const openMeterById = useCallback((meterId) => {
+    if (!meterId) return;
+    setSelectedMeterId(meterId);
+    setPage("meter-detail");
+  }, []);
+
+  const renderPage = () => {
     switch (page) {
       case "dashboard":
-        return <Dashboard onSelectMeter={openMeter} onSelectMeterById={openMeterById} />;
-      case "analysis":
-        return selectedMeter ? (
-          <MeterAnalysis meter={selectedMeter} onBack={backToDashboard} />
-        ) : (
-          <Dashboard onSelectMeter={openMeter} onSelectMeterById={openMeterById} />
+        return (
+          <Dashboard
+            onSelectMeter={openMeter}
+            onNavigate={(targetPage) => setPage(targetPage)}
+            currentUser={currentUser}
+          />
         );
-      case "health":
-        return <MeterHealth />;
-      case "alerts":
-        return <AlertsPage />;
+      case "meters":
+        return <MetersPage onSelectMeter={openMeter} />;
+      case "meter-detail":
+        return (
+          <MeterAnalysis
+            meterId={selectedMeterId}
+            currentUser={currentUser}
+            onBack={() => setPage("meters")}
+            onNavigateToInvestigations={() => setPage("investigations")}
+            onShowToast={addToast}
+          />
+        );
+      case "consumption":
+        return <ConsumptionAnalytics />;
+      case "anomalies":
+        return (
+          <AnomalyDetection
+            currentUser={currentUser}
+            onSelectMeterById={openMeterById}
+            onNavigateToInvestigations={() => setPage("investigations")}
+            onShowToast={addToast}
+          />
+        );
+      case "forecasting":
+        return <ForecastingPage />;
+      case "investigations":
+        return (
+          <InvestigationsPage
+            currentUser={currentUser}
+            onSelectMeterById={openMeterById}
+            onShowToast={addToast}
+          />
+        );
       case "reports":
-        return <Reports />;
+        return <Reports onShowToast={addToast} />;
+      case "data-quality":
+        return <DataQualityPage />;
+      case "meter-health":
+        return <MeterHealth />;
       case "settings":
-        return <Settings />;
+        return <Settings onShowToast={addToast} />;
       case "about":
         return <About />;
       default:
-        return <Dashboard onSelectMeter={openMeter} onSelectMeterById={openMeterById} />;
+        return (
+          <Dashboard
+            onSelectMeter={openMeter}
+            onNavigate={(targetPage) => setPage(targetPage)}
+            currentUser={currentUser}
+          />
+        );
     }
   };
 
+  if (booting) {
+    return (
+      <div className="loading-screen full-screen">
+        <div className="loading-spinner" />
+        <p className="loading-text">Restoring your MeterIQ session…</p>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <main className="login-main">
+        {authView === "signup" ? (
+          <Signup onSignup={handleSignup} onGoToLogin={() => setAuthView("login")} />
+        ) : (
+          <Login onLogin={handleLogin} onGoToSignup={() => setAuthView("signup")} />
+        )}
+      </main>
+    );
+  }
+
   return (
     <div className="app">
-      <Sidebar page={page} setPage={setPage} />
+      <Sidebar
+        page={page}
+        setPage={setPage}
+        onLogout={handleLogout}
+        role={currentUser.role}
+        user={currentUser}
+        isMobileOpen={isMobileMenuOpen}
+        setIsMobileOpen={setIsMobileMenuOpen}
+      />
       <main>
-        <Header page={page} />
-        <div className="page-content fade-in">
-          {renderPage()}
-        </div>
+        <Header
+          page={page}
+          user={currentUser}
+          role={currentUser.role}
+          onToggleMobileMenu={() => setIsMobileMenuOpen((open) => !open)}
+        />
+        <div className={`page-content fade-in ${compactTables ? "compact-tables" : ""}`}>{renderPage()}</div>
       </main>
-      <ToastContainer toasts={toasts} />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <AppShell />
+    </ToastProvider>
   );
 }

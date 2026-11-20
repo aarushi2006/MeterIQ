@@ -1,124 +1,328 @@
-import { meters } from "../data/mockData";
+import { useCallback, useEffect, useState } from "react";
 import CardHeader from "../components/CardHeader";
+import Stat from "../components/Stat";
+import {
+  EmptyState,
+  ErrorState,
+  InlineNotice,
+  LoadingState,
+} from "../components/StateViews";
+import { reportService } from "../services/reportService";
 
-export default function Reports() {
-  const highRisk = meters.filter((m) => m.risk === "High");
-  const medRisk = meters.filter((m) => m.risk === "Medium");
+function formatNumber(value, digits = 0) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "—";
+  return digits
+    ? number.toLocaleString("en-IN", { maximumFractionDigits: digits })
+    : new Intl.NumberFormat("en-IN").format(number);
+}
 
-  const reports = [
-    { id: "RPT001", title: "Weekly Anomaly Summary", date: "Sep 8, 2026", type: "Anomaly", status: "Ready", meters: meters.length },
-    { id: "RPT002", title: "High Risk Meter Report", date: "Sep 8, 2026", type: "Risk", status: "Ready", meters: highRisk.length },
-    { id: "RPT003", title: "Mathura City Analysis", date: "Sep 7, 2026", type: "City", status: "Ready", meters: meters.filter((m) => m.city === "Mathura").length },
-    { id: "RPT004", title: "Bareilly City Analysis", date: "Sep 7, 2026", type: "City", status: "Ready", meters: meters.filter((m) => m.city === "Bareilly").length },
-    { id: "RPT005", title: "Load Forecast Report", date: "Sep 8, 2026", type: "Forecast", status: "Ready", meters: meters.length },
-    { id: "RPT006", title: "Meter Health Status", date: "Sep 8, 2026", type: "Health", status: "Ready", meters: meters.length },
-  ];
+function formatDateTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+const REPORT_DEFINITIONS = [
+  {
+    type: "meters",
+    title: "Meter catalogue",
+    description:
+      "One row per meter with risk classification, observation counts, anomaly rate, coverage, and top indicator.",
+    capability: "Available",
+  },
+  {
+    type: "anomalies",
+    title: "Flagged anomaly observations",
+    description:
+      "Observation-level records with timestamps, severity, consumption, and indicator reasons. Capped at 20,000 rows per export.",
+    capability: "Requires anomaly_observations.parquet",
+  },
+  {
+    type: "regional",
+    title: "Regional aggregates",
+    description:
+      "Meter, flag, and anomaly-observation totals for each region from the anomaly summary artifact.",
+    capability: "Available",
+  },
+  {
+    type: "investigations",
+    title: "Investigation cases",
+    description:
+      "Case ID, meter, status, priority, assignment, reason, timestamps, and resolution from MongoDB.",
+    capability: "Available",
+  },
+];
+
+export default function Reports({ onShowToast }) {
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [downloading, setDownloading] = useState(null);
+  const [lastExport, setLastExport] = useState(null);
+
+  const [region, setRegion] = useState("all");
+  const [risk, setRisk] = useState("all");
+  const [caseStatus, setCaseStatus] = useState("all");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await reportService.getSummary();
+      setSummary(data);
+    } catch (err) {
+      setError(err.message || "Unable to load the report summary.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleDownload = async (type) => {
+    if (downloading) return;
+
+    const filters =
+      type === "meters"
+        ? { region, risk }
+        : type === "anomalies"
+          ? { region, risk }
+          : type === "investigations"
+            ? { region, status: caseStatus }
+            : {};
+
+    setDownloading(type);
+    try {
+      const filename = await reportService.download(type, filters);
+      setLastExport({ type, filename, at: new Date().toISOString() });
+      onShowToast?.(`Export downloaded: ${filename}`, "success");
+    } catch (err) {
+      onShowToast?.(err.message || "The export could not be generated.", "error");
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  if (loading) {
+    return <LoadingState label="Loading report summary from the API…" />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState title="Reports unavailable" message={error} onRetry={load} />
+    );
+  }
+
+  const meters = summary?.meters || {};
+  const investigations = summary?.investigations || {};
+  const quality = summary?.dataQuality;
+  const regions = summary?.regions || [];
 
   return (
     <>
       <section className="page-header">
-        <label>REPORTS & EXPORTS</label>
-        <h1>Reports</h1>
-        <p>Generate and export analysis reports for authorities.</p>
+        <div className="page-header-title">
+          <label>EXPORTS AND OPERATIONAL REPORTS</label>
+          <h1>Reports</h1>
+          <p>
+            CSV exports are generated by the backend from the same live data used across
+            the dashboard. A download starts only after the API responds successfully.
+          </p>
+        </div>
+        <button className="secondary action-btn" onClick={load} disabled={loading}>
+          Refresh summary
+        </button>
       </section>
 
-      <section className="stats">
-        <article className="stat">
-          <div className="stat-top">
-            <span className="stat-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>📄</span>
-            <span className="stat-label">Available Reports</span>
+      {summary?.warnings?.length > 0 && (
+        <InlineNotice tone="warning" title="Some report sections are unavailable">
+          <ul className="notice-list">
+            {summary.warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </InlineNotice>
+      )}
+
+      {lastExport && (
+        <InlineNotice tone="success" title="Last export completed">
+          {lastExport.filename} · {formatDateTime(lastExport.at)}
+        </InlineNotice>
+      )}
+
+      <section className="stats kpi-grid-4">
+        <Stat
+          icon="📡"
+          label="Meters in scope"
+          value={formatNumber(summary?.meterCount ?? meters.totalMeters)}
+          sub={`${formatNumber(meters.flaggedMeters)} flagged`}
+        />
+        <Stat
+          icon="⚠️"
+          label="Anomaly observations"
+          value={formatNumber(meters.totalAnomalyObservations)}
+          sub={`${formatNumber(meters.totalObservations)} scored observations`}
+        />
+        <Stat
+          icon="📁"
+          label="Open investigations"
+          value={formatNumber(investigations.open)}
+          sub={`${formatNumber(
+            Object.values(investigations.byStatus || {}).reduce(
+              (sum, value) => sum + Number(value || 0),
+              0
+            )
+          )} total cases`}
+        />
+        <Stat
+          icon="🧪"
+          label="Dataset completeness"
+          value={
+            Number.isFinite(Number(quality?.completeness_pct))
+              ? `${formatNumber(quality.completeness_pct, 2)}%`
+              : "—"
+          }
+          sub={
+            quality?.coverage
+              ? `${formatDateTime(quality.coverage.start)} → ${formatDateTime(quality.coverage.end)}`
+              : "Data-quality endpoint unavailable"
+          }
+        />
+      </section>
+
+      <section className="filter-card">
+        <div className="filter-grid">
+          <div className="select-wrap">
+            <label htmlFor="report-region">Export region</label>
+            <select id="report-region" value={region} onChange={(event) => setRegion(event.target.value)}>
+              <option value="all">All regions</option>
+              {regions.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
           </div>
-          <h2>{reports.length}</h2>
-          <small>Ready to export</small>
-        </article>
-        <article className="stat">
-          <div className="stat-top">
-            <span className="stat-icon" style={{ background: "#fef2f2", color: "#dc2626" }}>⚠</span>
-            <span className="stat-label">High Risk Meters</span>
+
+          <div className="select-wrap">
+            <label htmlFor="report-risk">Export risk level</label>
+            <select id="report-risk" value={risk} onChange={(event) => setRisk(event.target.value)}>
+              <option value="all">All risk levels</option>
+              <option value="HIGH_RISK">High risk</option>
+              <option value="REVIEW">Review</option>
+              <option value="NORMAL">Normal</option>
+            </select>
           </div>
-          <h2>{highRisk.length}</h2>
-          <small>Need detailed report</small>
-        </article>
-        <article className="stat">
-          <div className="stat-top">
-            <span className="stat-icon" style={{ background: "#fffbeb", color: "#d97706" }}>△</span>
-            <span className="stat-label">Medium Risk</span>
+
+          <div className="select-wrap">
+            <label htmlFor="report-case-status">Case status</label>
+            <select
+              id="report-case-status"
+              value={caseStatus}
+              onChange={(event) => setCaseStatus(event.target.value)}
+            >
+              <option value="all">All statuses</option>
+              <option value="OPEN">Open</option>
+              <option value="IN PROGRESS">In progress</option>
+              <option value="RESOLVED">Resolved</option>
+            </select>
           </div>
-          <h2>{medRisk.length}</h2>
-          <small>Monitor closely</small>
-        </article>
-        <article className="stat">
-          <div className="stat-top">
-            <span className="stat-icon" style={{ background: "#ecfdf5", color: "#059669" }}>✓</span>
-            <span className="stat-label">Normal Meters</span>
-          </div>
-          <h2>{meters.filter((m) => m.risk === "Low").length}</h2>
-          <small>Within expected range</small>
-        </article>
+        </div>
+        <div className="filter-summary-row">
+          <span>Region filters apply to meters, anomalies, and investigations.</span>
+          <span>Risk filters apply to meters and anomaly records.</span>
+        </div>
+      </section>
+
+      <section className="report-grid">
+        {REPORT_DEFINITIONS.map((report) => {
+          const anomalyReady = summary?.anomalies?.available === true;
+          const capability =
+            report.type === "anomalies"
+              ? anomalyReady
+                ? "Available"
+                : (summary?.anomalies?.message ||
+                  "Requires anomaly_observations.parquet")
+              : report.capability;
+          return (
+          <article key={report.type} className="card report-card">
+            <CardHeader title={report.title} text={report.description} />
+            <div className="report-card-footer">
+              <span
+                className={`report-capability ${
+                  report.type === "anomalies" && !anomalyReady ? "conditional" : "ready"
+                }`}
+              >
+                {capability}
+              </span>
+              <button
+                className="primary"
+                onClick={() => handleDownload(report.type)}
+                disabled={Boolean(downloading)}
+              >
+                {downloading === report.type ? "Generating CSV…" : "Download CSV"}
+              </button>
+            </div>
+          </article>
+          );
+        })}
       </section>
 
       <article className="card">
-        <CardHeader title="Generated Reports" text="Download or share reports with stakeholders" right="" />
-        <div className="reports-grid">
-          {reports.map((r) => (
-            <div key={r.id} className="report-card">
-              <div className="report-icon">
-                {r.type === "Anomaly" ? "△" : r.type === "Risk" ? "!" : r.type === "City" ? "⌖" : r.type === "Forecast" ? "↗" : "✓"}
-              </div>
-              <div className="report-info">
-                <strong>{r.title}</strong>
-                <small>{r.date} · {r.meters} meters</small>
-              </div>
-              <div className="report-actions">
-                <span className={`report-status ${r.status.toLowerCase()}`}>{r.status}</span>
-                <button className="report-download">↓ PDF</button>
-                <button className="report-share">Share</button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <CardHeader
+          title="Regional summary"
+          text="Aggregates used by the regional CSV export"
+        />
+        {summary?.regional?.regions && Object.keys(summary.regional.regions).length ? (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Region</th>
+                  <th>Meters</th>
+                  <th>Flagged</th>
+                  <th>High risk</th>
+                  <th>Review</th>
+                  <th>Anomaly observations</th>
+                  <th>Mean anomaly rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(summary.regional.regions).map(([name, values]) => (
+                  <tr key={name}>
+                    <td><strong>{name}</strong></td>
+                    <td>{formatNumber(values.meter_count)}</td>
+                    <td>{formatNumber(values.flagged_count)}</td>
+                    <td>{formatNumber(values.high_risk_count)}</td>
+                    <td>{formatNumber(values.review_count)}</td>
+                    <td>{formatNumber(values.total_anomaly_observations)}</td>
+                    <td>{formatNumber((values.avg_risk || 0) * 100, 2)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState
+            title="No regional aggregates"
+            message="The regional analytics endpoint did not return data."
+          />
+        )}
       </article>
 
-      <section className="grid2" style={{ marginTop: "20px" }}>
-        <article className="card">
-          <CardHeader title="Quick Export" text="Export specific data subsets" right="" />
-          <div className="export-options">
-            <button className="export-btn">
-              <span>📊</span>
-              <div><strong>All Meters CSV</strong><small>Export all meter data</small></div>
-            </button>
-            <button className="export-btn">
-              <span>⚠</span>
-              <div><strong>High Risk Only</strong><small>Meters with score &gt; 0.8</small></div>
-            </button>
-            <button className="export-btn">
-              <span>📍</span>
-              <div><strong>By City</strong><small>Mathura or Bareilly</small></div>
-            </button>
-            <button className="export-btn">
-              <span>📈</span>
-              <div><strong>Forecast Data</strong><small>24-hour predictions</small></div>
-            </button>
-          </div>
-        </article>
-        <article className="card">
-          <CardHeader title="Recent Exports" text="Download history" right="" />
-          <div className="export-history">
-            <div className="export-item">
-              <strong>anomaly_report_2026-09-08.pdf</strong>
-              <small>Generated 2 hours ago · 2.4 MB</small>
-            </div>
-            <div className="export-item">
-              <strong>meter_data_mathura.csv</strong>
-              <small>Generated yesterday · 856 KB</small>
-            </div>
-            <div className="export-item">
-              <strong>weekly_summary_w36.pdf</strong>
-              <small>Generated Sep 7 · 1.8 MB</small>
-            </div>
-          </div>
-        </article>
-      </section>
+      <p className="panel-footnote">
+        Summary generated {formatDateTime(summary?.generated_at)}. Exports are served by
+        the Node API; the anomaly export returns an explicit error when the observation
+        artifact has not been generated.
+      </p>
     </>
   );
 }
