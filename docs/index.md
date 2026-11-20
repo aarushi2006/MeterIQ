@@ -1,60 +1,48 @@
 ![TIET Logo](assets/tiet-logo.svg){ .tiet-logo }
 
-**UCS503: Software Engineering (Project)**  
+**UCS503: Software Engineering (Project)**
+
 **TIET Patiala**
 
 # MeterIQ - Explainable Smart Meter Analytics Platform
 
-**Author(s):** Aarushi Gahlawat | Yahit Arora
+## Group Members & Roles
 
----
+1. Yashit Arora: 1024160006
+2. Aarushi Gahlawat: 1024160008
+
+**Project:** MeterIQ  
+**Course:** UCS503P (Software Engineering)
 
 ## Project Overview
 
-MeterIQ is an intelligent electricity consumption monitoring and anomaly
-detection system designed to identify unusual household electricity usage
-using smart meter data.
+MeterIQ is an explainable smart-meter analytics platform designed for Indian Electricity distribution networks. The platform integrates two complementary modules:
 
-## Problem Statement
+1. *Anomaly/theft-risk Detection*
+2. *Short-Term Load Forecasting*
 
-Traditional electricity monitoring systems mainly focus on recording
-consumption and billing. Detecting abnormal consumption, electricity
-theft, meter tampering, and unusual usage patterns often requires
-manual inspection.
+The system uses real Indian Smart-meter data from Mathura and Bareilly to identify suspicious consumption behavior and forecast electricity demand. The goal is to convert large volumes of smart-meter data into actionable, explainable insights for electricity distribution utilities.
 
-MeterIQ aims to use machine learning and smart meter data to automatically
-identify potentially anomalous consumption patterns.
+Rather than treating anomaly detection and load forecasting as two different tasks, MeterIQ integrates these two into a single decision support platform.
 
-## Objectives
+## System Architecture
 
-- Analyze smart meter electricity consumption data
-- Identify abnormal consumption patterns
-- Incorporate relevant weather conditions
-- Reduce dependence on manual inspection
-- Provide an interpretable dashboard for monitoring
+MeterIQ follows an integrated analytics pipeline:
 
-## Methodology
+**Smart meter data → Clean and Reassemble → Feature Engineering → Anomaly Detection → Load Forecasting → Decision Support**
 
-1. Data collection
-2. Data preprocessing
-3. Feature engineering
-4. Weather-data integration
-5. Anomaly detection
-6. Model evaluation
-7. Dashboard/visualization
+There are 3 reports in LaTeX format, namely:
 
-## Technologies Used
+1. Project Proposal
+2. Project Report Prototype Stage
+3. Project Report Final
 
-- Python
-- Pandas
-- NumPy
-- Scikit-learn
-- Machine Learning
-- Streamlit
-- Git/GitHub
+Each is in their respective folders.
 
-## Project Structure
+Journals are stacked under the folder `journals`, one folder for each team member. A sample entry has been made for example.
 
-```text
-code/       - Source code
-docs/       - Project documentation
+The source code is contained within the folder `code`.
+
+The documentation is under `docs`.
+
+All other aspects of code organisation are left to the discretion of the user(s).

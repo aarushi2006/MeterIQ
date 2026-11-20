@@ -1,6 +1,17 @@
 {% extends "base.html" %}
 
 {% block htmltitle %}
-  <title>UCS503: Software Engineering; Raghav
-    B. Venkataramaiyer @TIET</title>
+  <title>MeterIQ - Explainable Smart Meter Analytics Platform</title>
+{% endblock %}
+
+{% block extrahead %}
+  <meta property="og:title" content="MeterIQ - Explainable Smart Meter Analytics Platform">
+  <meta property="og:description" content="MeterIQ - Explainable Smart Meter Analytics Platform">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://aarushi2006.github.io/ucs503p-202627odd-MeterIQ/">
+
+  <meta name="twitter:title" content="MeterIQ - Explainable Smart Meter Analytics Platform">
+  <meta name="twitter:description" content="MeterIQ - Explainable Smart Meter Analytics Platform">
+
+  {{ super() }}
 {% endblock %}
