@@ -3375,3 +3375,178 @@ button.secondary:hover {
     padding: 14px;
   }
 }
+
+/* =====================================================
+   CONTROLLER USER MANAGEMENT
+   ===================================================== */
+
+.um-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.um-card {
+  min-width: 0;
+}
+
+.um-toolbar {
+  display: flex;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.um-toolbar input {
+  flex: 1;
+  min-width: 180px;
+}
+
+.um-toolbar input,
+.um-toolbar select,
+.um-actions select,
+.um-form input,
+.um-form select {
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: white;
+  color: #1e293b;
+  font: inherit;
+  font-size: 12px;
+}
+
+.um-role {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.um-role-admin {
+  color: #6d28d9;
+  background: #f3e8ff;
+}
+
+.um-role-supervisor {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.um-role-analyst {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.um-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.um-status > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.um-status.inactive > span {
+  background: #ef4444;
+}
+
+.um-status.inactive {
+  color: #b91c1c;
+}
+
+.um-status.active {
+  color: #047857;
+}
+
+.um-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.um-actions select {
+  min-height: 34px;
+  padding: 6px 8px;
+}
+
+.um-danger-btn {
+  padding: 7px 10px;
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+  background: #fff1f2;
+  color: #be123c;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.um-danger-btn:disabled,
+.um-actions select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.um-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff1f2;
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+.um-create-modal {
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.um-form {
+  display: grid;
+  gap: 15px;
+}
+
+.um-form label {
+  display: grid;
+  gap: 7px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.um-form input,
+.um-form select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 850px) {
+  .um-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .um-toolbar {
+    flex-direction: column;
+  }
+
+  .um-card .table-wrap {
+    overflow-x: auto;
+  }
+
+  .um-card table {
+    min-width: 760px;
+  }
+}

@@ -1,7 +1,8 @@
+
 import { useState } from "react";
 import { authService } from "../services/authService";
 
-export default function Login({ onLogin, onGoToSignup }) {
+export default function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -23,8 +24,14 @@ export default function Login({ onLogin, onGoToSignup }) {
     }
 
     setIsSubmitting(true);
+
     try {
-      const user = await authService.login(email.trim(), password, rememberMe);
+      const user = await authService.login(
+        email.trim(),
+        password,
+        rememberMe
+      );
+
       onLogin(user);
     } catch (err) {
       setError(err.message || "Login failed.");
@@ -36,6 +43,7 @@ export default function Login({ onLogin, onGoToSignup }) {
   return (
     <div className="enterprise-login-page">
       <div className="login-bg-overlay" />
+
       <div className="login-dual-container">
         <section className="login-brand-panel">
           <div className="brand-panel-content">
@@ -47,7 +55,10 @@ export default function Login({ onLogin, onGoToSignup }) {
               />
             </div>
 
-            <h1 className="brand-quote-heading">Intelligence for the Energy Grid</h1>
+            <h1 className="brand-quote-heading">
+              Intelligence for the Energy Grid
+            </h1>
+
             <p className="brand-tagline-text">
               Explainable smart-meter analytics for consumption monitoring,
               anomaly review, and short-term load forecasting.
@@ -59,11 +70,13 @@ export default function Login({ onLogin, onGoToSignup }) {
                 title="Anomaly Detection"
                 description="Statistical and multivariate indicators highlight unusual consumption for human review — not automatic theft determinations."
               />
+
               <Feature
                 number="02"
                 title="Load Forecasting"
                 description="Chronologically validated short-term demand predictions with a baseline comparison."
               />
+
               <Feature
                 number="03"
                 title="Case Investigations"
@@ -75,7 +88,10 @@ export default function Login({ onLogin, onGoToSignup }) {
               <div className="brand-panel-footer-line">
                 Thapar Institute of Engineering and Technology
               </div>
-              <small className="motto-row">UCS503 · MeterIQ Project</small>
+
+              <small className="motto-row">
+                UCS503 · MeterIQ Project
+              </small>
             </div>
           </div>
         </section>
@@ -84,8 +100,13 @@ export default function Login({ onLogin, onGoToSignup }) {
           <div className="login-form-wrapper">
             <div className="form-brand-header">
               <span className="eyebrow">METERIQ PORTAL</span>
+
               <h1>Welcome back</h1>
-              <p>Sign in with your MeterIQ account. Roles are assigned by the server.</p>
+
+              <p>
+                Sign in with your MeterIQ account. Roles are assigned
+                by the server.
+              </p>
             </div>
 
             {error && (
@@ -94,9 +115,14 @@ export default function Login({ onLogin, onGoToSignup }) {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="auth-form" noValidate>
+            <form
+              onSubmit={handleSubmit}
+              className="auth-form"
+              noValidate
+            >
               <div className="input-group">
                 <label htmlFor="login-email">Work Email</label>
+
                 <div className="input-field-wrap">
                   <input
                     id="login-email"
@@ -114,6 +140,7 @@ export default function Login({ onLogin, onGoToSignup }) {
               <div className="input-group">
                 <div className="label-with-action">
                   <label htmlFor="login-password">Password</label>
+
                   <button
                     type="button"
                     className="forgot-link"
@@ -122,6 +149,7 @@ export default function Login({ onLogin, onGoToSignup }) {
                     Need help?
                   </button>
                 </div>
+
                 <div className="input-field-wrap with-toggle">
                   <input
                     id="login-password"
@@ -132,10 +160,13 @@ export default function Login({ onLogin, onGoToSignup }) {
                     required
                     autoComplete="current-password"
                   />
+
                   <button
                     type="button"
                     className="toggle-password-btn"
-                    onClick={() => setShowPassword((visible) => !visible)}
+                    onClick={() =>
+                      setShowPassword((visible) => !visible)
+                    }
                   >
                     {showPassword ? "Hide" : "Show"}
                   </button>
@@ -146,49 +177,69 @@ export default function Login({ onLogin, onGoToSignup }) {
                 <input
                   type="checkbox"
                   checked={rememberMe}
-                  onChange={(event) => setRememberMe(event.target.checked)}
+                  onChange={(event) =>
+                    setRememberMe(event.target.checked)
+                  }
                 />
+
                 Keep me signed in on this device
               </label>
 
-              <button type="submit" className="submit-login-btn" disabled={isSubmitting}>
+              <button
+                type="submit"
+                className="submit-login-btn"
+                disabled={isSubmitting}
+              >
                 {isSubmitting ? "Signing in…" : "Sign In to Portal"}
               </button>
             </form>
 
-            <p className="auth-switch-line">
-              New user?{" "}
-              <button type="button" className="auth-switch-link" onClick={onGoToSignup}>
-                Create an account
-              </button>
-            </p>
+            <div className="auth-switch-line">
+              Accounts are provisioned by your MeterIQ Controller.
+            </div>
 
             <p className="prototype-footnote">
-              Access is authenticated against the MeterIQ API. Public signup creates
-              an analyst account; supervisor access is provisioned by an administrator.
+              Your access level is determined by your assigned server-side
+              role. Contact the Controller if you need an account or
+              require a role change.
             </p>
           </div>
         </section>
       </div>
 
       {showHelp && (
-        <div className="modal-backdrop" onClick={() => setShowHelp(false)}>
-          <div className="modal-card mini-modal" onClick={(event) => event.stopPropagation()}>
+        <div
+          className="modal-backdrop"
+          onClick={() => setShowHelp(false)}
+        >
+          <div
+            className="modal-card mini-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="modal-header">
               <h3>Account access</h3>
-              <button className="modal-close" onClick={() => setShowHelp(false)}>
+
+              <button
+                className="modal-close"
+                onClick={() => setShowHelp(false)}
+              >
                 ×
               </button>
             </div>
+
             <div className="modal-body">
               <p>
-                Password reset is not implemented by this deployment's API. Contact
-                your MeterIQ administrator to reset credentials or to request a
-                supervisor role.
+                Password reset is not currently available through this
+                deployment's API. Contact your MeterIQ Controller to
+                reset your credentials or request a role change.
               </p>
             </div>
+
             <div className="modal-footer">
-              <button className="primary" onClick={() => setShowHelp(false)}>
+              <button
+                className="primary"
+                onClick={() => setShowHelp(false)}
+              >
                 Close
               </button>
             </div>
@@ -203,6 +254,7 @@ function Feature({ number, title, description }) {
   return (
     <div className="bf-item">
       <span className="bf-icon">{number}</span>
+
       <div>
         <strong>{title}</strong>
         <small>{description}</small>

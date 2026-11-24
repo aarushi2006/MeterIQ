@@ -1,8 +1,8 @@
+
 import { useCallback, useEffect, useState } from "react";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import { ToastProvider, useToast } from "./components/Toast";
-import { LoadingState } from "./components/StateViews";
 import Dashboard from "./pages/Dashboard";
 import MetersPage from "./pages/MetersPage";
 import MeterAnalysis from "./pages/MeterAnalysis";
@@ -15,8 +15,8 @@ import DataQualityPage from "./pages/DataQualityPage";
 import MeterHealth from "./pages/MeterHealth";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
-import Signup from "./pages/Signup";
 import About from "./pages/About";
+import UserManagement from "./pages/UserManagement";
 import { authService } from "./services/authService";
 import { getPreferences } from "./services/preferences";
 import "./styles.css";
@@ -24,20 +24,22 @@ import "./styles.css";
 function AppShell() {
   const [currentUser, setCurrentUser] = useState(null);
   const [booting, setBooting] = useState(true);
-  const [authView, setAuthView] = useState("login");
   const [page, setPage] = useState("dashboard");
   const [selectedMeterId, setSelectedMeterId] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [compactTables, setCompactTables] = useState(
     () => getPreferences().compactTables
   );
+
   const { addToast } = useToast();
 
   useEffect(() => {
     function handlePreferences() {
       setCompactTables(getPreferences().compactTables);
     }
+
     window.addEventListener("meteriq:preferences", handlePreferences);
+
     return () =>
       window.removeEventListener("meteriq:preferences", handlePreferences);
   }, []);
@@ -46,13 +48,27 @@ function AppShell() {
     let active = true;
 
     async function restore() {
-      const user = await authService.validateSession();
-      if (!active) return;
-      setCurrentUser(user);
-      setBooting(false);
+      try {
+        const user = await authService.validateSession();
+
+        if (!active) return;
+
+        setCurrentUser(user);
+      } catch (error) {
+        console.error("Session restoration failed:", error);
+
+        if (active) {
+          setCurrentUser(null);
+        }
+      } finally {
+        if (active) {
+          setBooting(false);
+        }
+      }
     }
 
     restore();
+
     return () => {
       active = false;
     };
@@ -62,46 +78,63 @@ function AppShell() {
     function handleUnauthorized() {
       setCurrentUser(null);
       setPage("dashboard");
-      setAuthView("login");
-      addToast("Your session expired. Please sign in again.", "warning");
+
+      addToast(
+        "Your session expired. Please sign in again.",
+        "warning"
+      );
     }
 
     window.addEventListener("meteriq:unauthorized", handleUnauthorized);
-    return () => window.removeEventListener("meteriq:unauthorized", handleUnauthorized);
+
+    return () =>
+      window.removeEventListener(
+        "meteriq:unauthorized",
+        handleUnauthorized
+      );
   }, [addToast]);
 
   const handleLogin = (user) => {
     setCurrentUser(user);
     setPage("dashboard");
-    addToast(`Signed in as ${user.fullName || user.email} (${user.role})`, "success");
-  };
 
-  const handleSignup = (user) => {
-    setCurrentUser(user);
-    setPage("dashboard");
-    addToast(`Account created — signed in as ${user.fullName || user.email}`, "success");
+    addToast(
+      `Signed in as ${user.fullName || user.email} (${user.role})`,
+      "success"
+    );
   };
 
   const handleLogout = async () => {
     await authService.logout();
+
     setCurrentUser(null);
     setPage("dashboard");
     setSelectedMeterId(null);
+
     addToast("Logged out successfully", "info");
   };
 
-  const openMeter = useCallback((meter) => {
-    const id = meter?.meter_id || meter?.id;
-    if (!id) {
-      addToast("This record does not have a meter identifier.", "error");
-      return;
-    }
-    setSelectedMeterId(id);
-    setPage("meter-detail");
-  }, [addToast]);
+  const openMeter = useCallback(
+    (meter) => {
+      const id = meter?.meter_id || meter?.id;
+
+      if (!id) {
+        addToast(
+          "This record does not have a meter identifier.",
+          "error"
+        );
+        return;
+      }
+
+      setSelectedMeterId(id);
+      setPage("meter-detail");
+    },
+    [addToast]
+  );
 
   const openMeterById = useCallback((meterId) => {
     if (!meterId) return;
+
     setSelectedMeterId(meterId);
     setPage("meter-detail");
   }, []);
@@ -116,31 +149,41 @@ function AppShell() {
             currentUser={currentUser}
           />
         );
+
       case "meters":
         return <MetersPage onSelectMeter={openMeter} />;
+
       case "meter-detail":
         return (
           <MeterAnalysis
             meterId={selectedMeterId}
             currentUser={currentUser}
             onBack={() => setPage("meters")}
-            onNavigateToInvestigations={() => setPage("investigations")}
+            onNavigateToInvestigations={() =>
+              setPage("investigations")
+            }
             onShowToast={addToast}
           />
         );
+
       case "consumption":
         return <ConsumptionAnalytics />;
+
       case "anomalies":
         return (
           <AnomalyDetection
             currentUser={currentUser}
             onSelectMeterById={openMeterById}
-            onNavigateToInvestigations={() => setPage("investigations")}
+            onNavigateToInvestigations={() =>
+              setPage("investigations")
+            }
             onShowToast={addToast}
           />
         );
+
       case "forecasting":
         return <ForecastingPage />;
+
       case "investigations":
         return (
           <InvestigationsPage
@@ -149,16 +192,35 @@ function AppShell() {
             onShowToast={addToast}
           />
         );
+
       case "reports":
         return <Reports onShowToast={addToast} />;
+
       case "data-quality":
         return <DataQualityPage />;
+
       case "meter-health":
         return <MeterHealth />;
+
       case "settings":
         return <Settings onShowToast={addToast} />;
+
       case "about":
         return <About />;
+
+      case "user-management":
+        if (currentUser?.role === "admin") {
+          return <UserManagement onShowToast={addToast} />;
+        }
+
+        return (
+          <Dashboard
+            onSelectMeter={openMeter}
+            onNavigate={(targetPage) => setPage(targetPage)}
+            currentUser={currentUser}
+          />
+        );
+
       default:
         return (
           <Dashboard
@@ -174,7 +236,9 @@ function AppShell() {
     return (
       <div className="loading-screen full-screen">
         <div className="loading-spinner" />
-        <p className="loading-text">Restoring your MeterIQ session…</p>
+        <p className="loading-text">
+          Restoring your MeterIQ session…
+        </p>
       </div>
     );
   }
@@ -182,11 +246,7 @@ function AppShell() {
   if (!currentUser) {
     return (
       <main className="login-main">
-        {authView === "signup" ? (
-          <Signup onSignup={handleSignup} onGoToLogin={() => setAuthView("login")} />
-        ) : (
-          <Login onLogin={handleLogin} onGoToSignup={() => setAuthView("signup")} />
-        )}
+        <Login onLogin={handleLogin} />
       </main>
     );
   }
@@ -202,14 +262,24 @@ function AppShell() {
         isMobileOpen={isMobileMenuOpen}
         setIsMobileOpen={setIsMobileMenuOpen}
       />
+
       <main>
         <Header
           page={page}
           user={currentUser}
           role={currentUser.role}
-          onToggleMobileMenu={() => setIsMobileMenuOpen((open) => !open)}
+          onToggleMobileMenu={() =>
+            setIsMobileMenuOpen((open) => !open)
+          }
         />
-        <div className={`page-content fade-in ${compactTables ? "compact-tables" : ""}`}>{renderPage()}</div>
+
+        <div
+          className={`page-content fade-in ${
+            compactTables ? "compact-tables" : ""
+          }`}
+        >
+          {renderPage()}
+        </div>
       </main>
     </div>
   );

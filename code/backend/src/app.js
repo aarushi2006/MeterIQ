@@ -3,7 +3,6 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const mongoose = require("mongoose");
-const connectDB = require("./config/db");
 const mlService = require("./services/mlService");
 require("dotenv").config();
 
@@ -19,18 +18,19 @@ app.use(
   })
 );
 
-// Connect to MongoDB
-connectDB();
-
+// JWT configuration check
 if (!process.env.JWT_SECRET) {
   console.warn("JWT_SECRET is not configured.");
 }
 
-const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
+const allowedOrigins = (
+  process.env.FRONTEND_URL || "http://localhost:5173"
+)
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+// CORS configuration
 app.use(
   cors({
     origin(origin, callback) {
@@ -65,7 +65,7 @@ app.use("/api/analytics", require("./routes/analyticsRoutes"));
 app.use("/api/investigations", require("./routes/investigationRoutes"));
 app.use("/api/reports", require("./routes/reportRoutes"));
 
-// Render liveness check: confirms that the API process is responding.
+// Render liveness check
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "healthy",
@@ -74,7 +74,7 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Detailed dependency health check for monitoring.
+// Detailed dependency health check
 app.get("/api/health", async (req, res) => {
   try {
     const ml = await mlService.checkHealth();
@@ -91,8 +91,13 @@ app.get("/api/health", async (req, res) => {
         ml: ml.reachable ? "up" : "down",
       },
       ml: ml.reachable
-        ? { version: ml.version, status: ml.status }
-        : { error: ml.error },
+        ? {
+            version: ml.version,
+            status: ml.status,
+          }
+        : {
+            error: ml.error,
+          },
     });
   } catch (error) {
     res.status(503).json({
@@ -121,7 +126,9 @@ app.use((err, req, res, next) => {
     message: err.message || "Internal Server Error",
   };
 
-  if (err.details) payload.details = err.details;
+  if (err.details) {
+    payload.details = err.details;
+  }
 
   if (process.env.NODE_ENV !== "production" && status >= 500) {
     payload.stack = err.stack;
