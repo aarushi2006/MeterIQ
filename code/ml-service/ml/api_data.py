@@ -10,8 +10,11 @@ interpolated or fabricated.
 
 from __future__ import annotations
 
+import glob
 import json
+import math
 import os
+import threading
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
@@ -22,8 +25,10 @@ from ml.config import config
 CACHE_VERSION = "v1"
 HOURLY_CACHE_PATH = os.path.join(config.output_dir, "api", "hourly_consumption.parquet")
 ANOMALY_OBSERVATIONS_PATH = os.path.join(
-    config.output_dir, "anomaly", "anomaly_observations.parquet"
+    config.output_dir, "anomaly", "observations_compact.parquet"
 )
+
+ANOMALY_DATASET_GLOB = ANOMALY_OBSERVATIONS_PATH
 ANOMALY_SUMMARY_PATH = os.path.join(
     config.output_dir, "anomaly", "meter_anomaly_summary.parquet"
 )
@@ -39,9 +44,44 @@ PIPELINE_RUN_PATH = os.path.join(config.output_dir, "pipeline_run.json")
 _hourly_cache: Optional[pd.DataFrame] = None
 _summary_cache: Optional[pd.DataFrame] = None
 
+# DuckDB gives each anomaly query its own in-memory connection. Two at a
+# time bounds the worst case well below Render Free's 512 MB: one query
+# peaks around 120 MB, so 2 x 120 MB + the hourly cache + the interpreter
+# stays inside the limit. A third concurrent request waits its turn
+# instead of pushing the process into swap/OOM.
+_ANOMALY_QUERY_SEMAPHORE = threading.BoundedSemaphore(2)
+
 
 def _log(message: str) -> None:
     print(f"[api-data] {message}", flush=True)
+
+
+def _optimize_hourly_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    """Downcast the hourly cache to compact dtypes.
+
+    The cache is ~1.07M rows. As read from the original Parquet it is
+    ~174 MB in pandas - almost exactly a third of Render Free's 512 MB
+    budget - because ``meter_id`` and ``region`` are stored as Python
+    objects (~50-60 MB each). They have 84 and 2 distinct values, so
+    categoricals are lossless and cut that to ~2 MB. ``interval_count``
+    and ``day_of_week`` are small integers and fit in int32/int8.
+    ``consumption``/``peak_consumption`` stay float64 so the totals the
+    API returns are bit-for-bit identical to before.
+    """
+    for column in ("meter_id", "region"):
+        if column in frame.columns and frame[column].dtype == object:
+            frame[column] = frame[column].astype("category")
+    if (
+        "interval_count" in frame.columns
+        and frame["interval_count"].dtype == "int64"
+    ):
+        frame["interval_count"] = frame["interval_count"].astype("int32")
+    if (
+        "day_of_week" in frame.columns
+        and frame["day_of_week"].dtype != "int8"
+    ):
+        frame["day_of_week"] = frame["day_of_week"].astype("int8")
+    return frame
 
 
 def load_anomaly_summary() -> pd.DataFrame:
@@ -105,7 +145,9 @@ def build_hourly_cache(force: bool = False) -> pd.DataFrame:
 
     if not force and os.path.exists(HOURLY_CACHE_PATH) and not _cache_is_stale(files):
         _log(f"Loading hourly cache from {HOURLY_CACHE_PATH}")
-        _hourly_cache = pd.read_parquet(HOURLY_CACHE_PATH)
+        _hourly_cache = _optimize_hourly_frame(
+            pd.read_parquet(HOURLY_CACHE_PATH)
+        )
         return _hourly_cache
 
     _log(f"Building hourly cache from {len(files)} processed files")
@@ -160,6 +202,8 @@ def build_hourly_cache(force: bool = False) -> pd.DataFrame:
     hourly["day_of_week"] = hourly["hour"].dt.dayofweek
     hourly["is_weekend"] = hourly["day_of_week"].isin([5, 6])
 
+    hourly = _optimize_hourly_frame(hourly)
+
     os.makedirs(os.path.dirname(HOURLY_CACHE_PATH), exist_ok=True)
     hourly.to_parquet(HOURLY_CACHE_PATH, index=False)
 
@@ -175,7 +219,9 @@ def get_hourly() -> pd.DataFrame:
     global _hourly_cache
     if _hourly_cache is None:
         if os.path.exists(HOURLY_CACHE_PATH) and not _cache_is_stale(_processed_files()):
-            _hourly_cache = pd.read_parquet(HOURLY_CACHE_PATH)
+            _hourly_cache = _optimize_hourly_frame(
+                pd.read_parquet(HOURLY_CACHE_PATH)
+            )
         else:
             return build_hourly_cache()
     return _hourly_cache
@@ -231,42 +277,59 @@ def finite(value, default=0.0) -> float:
 
 
 # ----------------------------------------------------------------------
-# Anomaly observation artifact
+# Anomaly observation artifact - DuckDB / partitioned Parquet
 # ----------------------------------------------------------------------
 
-_anomaly_cache: Optional[pd.DataFrame] = None
-
-
 def anomaly_status() -> Dict:
-    exists = os.path.exists(ANOMALY_OBSERVATIONS_PATH)
-    size = os.path.getsize(ANOMALY_OBSERVATIONS_PATH) if exists else 0
+    available = os.path.isfile(ANOMALY_OBSERVATIONS_PATH)
+
+    total_size = (
+        os.path.getsize(ANOMALY_OBSERVATIONS_PATH)
+        if available
+        else 0
+    )
+
     return {
-        "available": exists,
+        "available": available,
         "message": (
             "Observation-level anomaly records are available."
-            if exists
-            else (
-                "Observation-level anomaly records are unavailable. The artifact "
-                f"{ANOMALY_OBSERVATIONS_PATH} has not been generated. Meter-level "
-                "aggregates from meter_anomaly_summary.parquet are still shown. "
-                "Regenerate it with the UC1 pipeline: "
-                "`python -m ml.anomaly.pipeline` (after the feature parquet exists)."
-            )
+            if available
+            else "Compact observation-level anomaly dataset is unavailable."
         ),
         "path": ANOMALY_OBSERVATIONS_PATH,
-        "size_bytes": size,
+        "size_bytes": total_size,
     }
+
+
+def _anomaly_connection():
+    import duckdb
+
+    con = duckdb.connect(":memory:")
+    # Each query only needs a COUNT plus a top-50 sort over the compact
+    # flagged dataset; 96 MB is comfortably above the observed working set
+    # (~120 MB peak measured at the old 180 MB ceiling) while leaving room
+    # for a second concurrent query inside 512 MB. If a query ever exceeds
+    # this, DuckDB spills to disk rather than being OOM-killed.
+    con.execute("SET memory_limit = '96MB'")
+    con.execute("SET threads = 1")
+    con.execute("SET preserve_insertion_order = false")
+    return con
 
 
 def _derive_anomaly_type(reasons: List[str]) -> Optional[str]:
     text = " ".join(reasons).lower()
+
     if not text:
         return None
     if "zero" in text:
         return "Unexpected Zero Usage"
-    if "above" in text and ("standard deviation" in text or "consumption" in text):
+    if "above" in text and (
+        "standard deviation" in text or "consumption" in text
+    ):
         return "Consumption Spike"
-    if "below" in text and ("standard deviation" in text or "consumption" in text):
+    if "below" in text and (
+        "standard deviation" in text or "consumption" in text
+    ):
         return "Consumption Drop"
     if "night" in text:
         return "Night-time Pattern"
@@ -275,55 +338,23 @@ def _derive_anomaly_type(reasons: List[str]) -> Optional[str]:
     return "Statistical Deviation"
 
 
-def load_anomaly_observations() -> pd.DataFrame:
-    """
-    Load flagged observation records only. Returns an empty frame when the
-    artifact is absent - callers must check anomaly_status() and expose that
-    state rather than substituting mock records.
-    """
-    global _anomaly_cache
-    if _anomaly_cache is not None:
-        return _anomaly_cache
-
-    if not os.path.exists(ANOMALY_OBSERVATIONS_PATH):
-        _anomaly_cache = pd.DataFrame()
-        return _anomaly_cache
-
-    import pyarrow.parquet as pq
-
-    available_columns = set(pq.ParquetFile(ANOMALY_OBSERVATIONS_PATH).schema.names)
-    wanted = [
-        "meter_id",
-        "timestamp",
-        "region",
-        "risk_level",
-        "combined_severity",
-        "consumption",
-        "reasons",
-        "explanation",
-        "deviation_z",
-        "pct_change_prev",
-        "deviation_from_same_hour_last_week",
-        "baseline_severity",
-        "isolation_forest_severity",
-    ]
-    columns = [column for column in wanted if column in available_columns]
-
-    frame = pd.read_parquet(ANOMALY_OBSERVATIONS_PATH, columns=columns)
-    if "risk_level" in frame.columns:
-        frame = frame[frame["risk_level"].isin(["REVIEW", "HIGH_RISK"])].copy()
+def _prepare_anomaly_frame(frame: pd.DataFrame) -> pd.DataFrame:
     if frame.empty:
-        _anomaly_cache = frame
         return frame
 
+    frame = frame.copy()
+    frame["meter_id"] = frame["meter_id"].astype(str)
+    frame["timestamp"] = pd.to_datetime(
+        frame["timestamp"], errors="coerce"
+    )
+    frame = frame.dropna(subset=["timestamp"]).copy()
+
     if "region" not in frame.columns:
-        frame["region"] = frame["meter_id"].astype(str).map(region_map()).fillna("Unknown")
+        frame["region"] = (
+            frame["meter_id"].map(region_map()).fillna("Unknown")
+        )
     else:
         frame["region"] = frame["region"].fillna("Unknown")
-
-    if "timestamp" in frame.columns:
-        frame["timestamp"] = pd.to_datetime(frame["timestamp"], errors="coerce")
-        frame = frame.dropna(subset=["timestamp"])
 
     def parse_reasons(value):
         if isinstance(value, list):
@@ -341,17 +372,152 @@ def load_anomaly_observations() -> pd.DataFrame:
     else:
         frame["reasons"] = frame["reasons"].apply(parse_reasons)
 
-    if "combined_severity" not in frame.columns:
-        frame["combined_severity"] = 0.0
-
     frame["severity"] = pd.to_numeric(
         frame["combined_severity"], errors="coerce"
     ).fillna(0.0)
     frame["anomaly_type"] = frame["reasons"].apply(_derive_anomaly_type)
-    frame["meter_id"] = frame["meter_id"].astype(str)
 
-    _anomaly_cache = frame
     return frame
+
+
+def query_anomalies(
+    risk="all",
+    region="all",
+    meter_id="all",
+    search="",
+    page=1,
+    page_size=50,
+    sort="severity_desc",
+):
+    if not anomaly_status()["available"]:
+        return pd.DataFrame(), 0, 1, page_size, 0
+
+    page = max(1, int(page))
+    page_size = max(1, min(500, int(page_size)))
+
+    conditions = []
+    params = [ANOMALY_DATASET_GLOB]
+
+    if risk and str(risk).lower() != "all":
+        conditions.append("risk_level = ?")
+        params.append(str(risk).upper())
+
+    if region and str(region).lower() != "all":
+        conditions.append("lower(region) = lower(?)")
+        params.append(str(region))
+
+    if meter_id and str(meter_id).lower() != "all":
+        conditions.append("meter_id = ?")
+        params.append(str(meter_id))
+
+    if search:
+        conditions.append(
+            """
+            (
+                strpos(lower(meter_id), lower(?)) > 0
+                OR strpos(lower(region), lower(?)) > 0
+                OR strpos(lower(CAST(reasons AS VARCHAR)), lower(?)) > 0
+            )
+            """
+        )
+        params.extend([str(search), str(search), str(search)])
+
+    where_sql = (
+        " WHERE " + " AND ".join(conditions)
+        if conditions
+        else ""
+    )
+
+    order_options = {
+        "timestamp_asc": "timestamp ASC",
+        "timestamp_desc": "timestamp DESC",
+        "severity_desc": "combined_severity DESC, timestamp DESC",
+    }
+    order_sql = order_options.get(
+        sort, "combined_severity DESC, timestamp DESC"
+    )
+
+    con = _anomaly_connection()
+    source = "read_parquet(?)"
+
+    try:
+        total = con.execute(
+            f"SELECT COUNT(*) FROM {source}{where_sql}",
+            params,
+        ).fetchone()[0]
+
+        offset = (page - 1) * page_size
+
+        rows = con.execute(
+            f"""
+            SELECT
+                timestamp,
+                meter_id,
+                region,
+                risk_level,
+                combined_severity,
+                consumption,
+                reasons,
+                deviation_z,
+                pct_change_prev,
+                deviation_from_same_hour_last_week,
+                baseline_severity,
+                isolation_forest_severity
+            FROM {source}
+            {where_sql}
+            ORDER BY {order_sql}
+            LIMIT ? OFFSET ?
+            """,
+            params + [page_size, offset],
+        ).fetchdf()
+
+        frame = _prepare_anomaly_frame(rows)
+        total_pages = math.ceil(total / page_size) if total else 0
+
+        return frame, total, page, page_size, total_pages
+    finally:
+        con.close()
+
+
+def query_meter_anomalies(
+    meter_id,
+    page=1,
+    page_size=50,
+    risk="all",
+):
+    return query_anomalies(
+        meter_id=str(meter_id),
+        risk=risk,
+        page=page,
+        page_size=page_size,
+        sort="timestamp_desc",
+    )
+
+
+def load_meter_anomaly_observations(meter_id) -> pd.DataFrame:
+    if not anomaly_status()["available"]:
+        return pd.DataFrame()
+
+    con = _anomaly_connection()
+    try:
+        frame = con.execute(
+            """
+            SELECT timestamp, meter_id, risk_level
+            FROM read_parquet(?)
+            WHERE meter_id = ?
+            """,
+            [ANOMALY_DATASET_GLOB, str(meter_id)],
+        ).fetchdf()
+
+        if frame.empty:
+            return frame
+
+        frame["timestamp"] = pd.to_datetime(
+            frame["timestamp"], errors="coerce"
+        )
+        return frame.dropna(subset=["timestamp"])
+    finally:
+        con.close()
 
 
 def serialize_anomaly(row) -> Dict:

@@ -11,8 +11,6 @@ from pydantic import BaseModel, Field
 
 from ml import api_data
 from ml.config import config
-from ml.pipeline import run_phase_a
-from ml.forecasting.pipeline import run_forecasting_pipeline
 
 # ----------------------------------------------------------------------
 # Setup
@@ -482,22 +480,26 @@ def get_consumption(
                 detail=f"No consumption data for meter {meter_id} in the requested range",
             )
 
-        observations = api_data.load_anomaly_observations()
+        observations = api_data.load_meter_anomaly_observations(meter_id)
         anomaly_hours = {}
+
         if not observations.empty:
-            flagged = observations[
-                observations["meter_id"].astype(str) == str(meter_id)
-            ]
-            if not flagged.empty:
-                flagged = flagged.copy()
-                flagged["timestamp"] = pd.to_datetime(
-                    flagged["timestamp"], errors="coerce"
-                ).dt.floor("D" if resolution == "daily" else "h")
-                anomaly_hours = (
-                    flagged.groupby("timestamp")["risk_level"]
-                    .agg(lambda values: "HIGH_RISK" if "HIGH_RISK" in set(values) else "REVIEW")
-                    .to_dict()
+            observations = observations.copy()
+            observations["timestamp"] = pd.to_datetime(
+                observations["timestamp"], errors="coerce"
+            ).dt.floor("D" if resolution == "daily" else "h")
+
+            anomaly_hours = (
+                observations.groupby("timestamp")["risk_level"]
+                .agg(
+                    lambda values: (
+                        "HIGH_RISK"
+                        if "HIGH_RISK" in set(values)
+                        else "REVIEW"
+                    )
                 )
+                .to_dict()
+            )
 
         points = []
         for _, row in meter_data.iterrows():
@@ -568,6 +570,7 @@ def get_anomalies(
     sort: str = "severity_desc",
 ):
     status = api_data.anomaly_status()
+
     if not status["available"]:
         return {
             "available": False,
@@ -581,48 +584,26 @@ def get_anomalies(
         }
 
     try:
-        frame = api_data.load_anomaly_observations()
-
-        if frame.empty:
-            return {
-                "available": True,
-                "records": [],
-                "total": 0,
-                "page": 1,
-                "pageSize": page_size,
-                "totalPages": 0,
-                "message": "No flagged observations exist in the anomaly artifact.",
-            }
-
-        if risk and risk != "all":
-            frame = frame[frame["risk_level"] == risk]
-        if region and region != "all":
-            frame = frame[
-                frame["region"].astype(str).str.lower() == str(region).lower()
-            ]
-        if meter_id and meter_id != "all":
-            frame = frame[frame["meter_id"].astype(str) == str(meter_id)]
-        if search:
-            needle = str(search).lower()
-            reason_text = frame["reasons"].apply(lambda values: " ".join(values or []))
-            mask = (
-                frame["meter_id"].str.lower().str.contains(needle, regex=False)
-                | frame["region"].str.lower().str.contains(needle, regex=False)
-                | reason_text.str.lower().str.contains(needle, regex=False)
-            )
-            frame = frame[mask]
-
-        if sort == "timestamp_asc":
-            frame = frame.sort_values("timestamp", ascending=True)
-        elif sort == "timestamp_desc":
-            frame = frame.sort_values("timestamp", ascending=False)
-        else:
-            frame = frame.sort_values(["severity", "timestamp"], ascending=[False, False])
-
-        page_frame, total, page, page_size, total_pages = paginate(
-            frame, page, page_size
+        (
+            frame,
+            total,
+            page,
+            page_size,
+            total_pages,
+        ) = api_data.query_anomalies(
+            risk=risk,
+            region=region,
+            meter_id=meter_id,
+            search=search,
+            page=page,
+            page_size=page_size,
+            sort=sort,
         )
-        records = [api_data.serialize_anomaly(row) for _, row in page_frame.iterrows()]
+
+        records = [
+            api_data.serialize_anomaly(row)
+            for _, row in frame.iterrows()
+        ]
 
         return {
             "available": True,
@@ -633,6 +614,7 @@ def get_anomalies(
             "totalPages": total_pages,
             "message": None,
         }
+
     except Exception as error:
         logger.exception("Error listing anomalies")
         raise HTTPException(status_code=500, detail=str(error))
@@ -660,23 +642,28 @@ def get_meter_anomalies(
         }
 
     try:
-        frame = api_data.load_anomaly_observations()
-        frame = frame[frame["meter_id"].astype(str) == str(meter_id)].copy()
-
-        if risk and risk != "all":
-            frame = frame[frame["risk_level"] == risk]
-
-        frame = frame.sort_values("timestamp", ascending=False)
-        page_frame, total, page, page_size, total_pages = paginate(
-            frame, page, page_size
+        (
+            frame,
+            total,
+            page,
+            page_size,
+            total_pages,
+        ) = api_data.query_meter_anomalies(
+            meter_id=meter_id,
+            page=page,
+            page_size=page_size,
+            risk=risk,
         )
+
+        records = [
+            api_data.serialize_anomaly(row)
+            for _, row in frame.iterrows()
+        ]
 
         return {
             "meter_id": str(meter_id),
             "available": True,
-            "records": [
-                api_data.serialize_anomaly(row) for _, row in page_frame.iterrows()
-            ],
+            "records": records,
             "total": total,
             "page": page,
             "pageSize": page_size,
@@ -684,8 +671,12 @@ def get_meter_anomalies(
             "summary": summary,
             "message": None,
         }
+
     except Exception as error:
-        logger.exception("Error fetching anomalies for %s", meter_id)
+        logger.exception(
+            "Error fetching anomalies for %s",
+            meter_id,
+        )
         raise HTTPException(status_code=500, detail=str(error))
 
 
@@ -1231,10 +1222,17 @@ def get_pipeline_status():
 async def run_pipeline(background_tasks: BackgroundTasks):
     def execute_all():
         try:
+            # Import heavy pipeline modules only when a pipeline run is requested.
+            logger.info("Loading ML pipeline modules")
+            from ml.pipeline import run_phase_a
+            from ml.forecasting.pipeline import run_forecasting_pipeline
+
             logger.info("Starting anomaly detection pipeline")
             run_phase_a()
+
             logger.info("Starting forecasting pipeline")
             run_forecasting_pipeline()
+
             logger.info("Full pipeline completed")
         except Exception:
             logger.exception("Pipeline run failed")
