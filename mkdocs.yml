@@ -30,7 +30,7 @@ plugins:
 
 theme:
   name: material
-  custom_dir: docs/assets/theme-overrides
+  custom_dir: assets/theme-overrides
   features:
     - navigation.footer
     - header.autohide
