@@ -113,3 +113,29 @@ frontend fallbacks; that is no longer the architecture.
 
 See `README.md` for prerequisites, environment files, exact start commands,
 role provisioning, and the artifact regeneration caveats.
+
+## 7. 2026-11-24 update — repository repair, `code/` layout, Vercel target
+
+1. **Broken working tree fixed.** A `git merge origin/master` had been left
+   unfinished, leaving 30 frontend files with raw conflict markers; the frontend
+   did not compile. The merge was resolved in favour of the integrated
+   implementation, the un-routed duplicate `RiskMapPage` (which called a
+   non-existent `anomalyService.getMeters`) was dropped, and the merge committed.
+2. **Source reorganised** into a single `code/` folder containing `frontend/`,
+   `backend/` and `ml-service/` (with the pre-existing `code/preprocessing/`).
+   History preserved via `git mv`.
+3. **Frontend target changed to Vercel.** `VITE_BASE_PATH` defaults to `/`,
+   `code/frontend/vercel.json` pins framework/output, and both GitHub Pages
+   frontend workflows were removed. The repository's Pages site remains the
+   MkDocs documentation.
+4. **Production hardening added:** `helmet`, `express-rate-limit` (900/15 min
+   global, 20 failed auth attempts/15 min), `trust proxy`, CORS rejection by
+   omitting headers instead of throwing a 500, `/api/health` alias, graceful
+   shutdown, `0.0.0.0` binding, env-driven ML host/port.
+5. **Deployable artifacts added:** `Dockerfile` for backend and ML service,
+   `.dockerignore` files, `render.yaml` blueprint, production env templates,
+   `docs/DEPLOYMENT.md`.
+
+Verified locally from the new paths: frontend build ✓, ML `pytest` **76
+passed** ✓, 19/19 API endpoints and 4/4 CSV exports `200` ✓, ML health flags all
+true ✓.
