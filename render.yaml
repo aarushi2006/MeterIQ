@@ -1,6 +1,6 @@
 # Render Blueprint for the MeterIQ API and ML service.
 #
-# The frontend is deployed to GitHub Pages by .github/workflows/deploy.yml.
+# The frontend is deployed to Vercel (root directory: code/frontend).
 # MongoDB must be a MongoDB Atlas cluster (Render no longer offers managed
 # MongoDB); provide its connection string as MONGODB_URI when the blueprint
 # asks for it. Never commit that value.
@@ -11,7 +11,7 @@ services:
   - type: web
     name: meteriq-api
     runtime: docker
-    rootDir: backend
+    rootDir: code/backend
     dockerfilePath: ./Dockerfile
     plan: starter
     region: singapore
@@ -44,7 +44,7 @@ services:
   - type: web
     name: meteriq-ml
     runtime: docker
-    rootDir: ml-service
+    rootDir: code/ml-service
     dockerfilePath: ./Dockerfile
     # The service keeps the anomaly summary, hourly cache and forecast
     # artifacts in memory (~1.1 GB observed), so the 512 MB Starter plan is not

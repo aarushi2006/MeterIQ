@@ -37,26 +37,27 @@ Port `5050` is used instead of `5000` because macOS Control Center already binds
 ## Repository layout
 
 ```
-backend/                 Express API
-  server.js              process entry point
-  src/app.js             middleware, routes, health check, error handling
-  src/controllers/       auth, meters, analytics, anomalies, forecast, reports, investigations
-  src/models/            User, Meter, Anomaly, Investigation
-  src/services/          ML HTTP client
-  src/utils/             CSV helpers
-frontend/                React console
-  src/pages/             one component per screen
-  src/services/          API clients, session storage, preferences
-  src/components/        layout, toasts, state views, badges
-  src/charts/            Recharts wrappers
-ml-service/              FastAPI analytics service + ML pipeline code
-  main.py                API entry point
-  ml/api_data.py         hourly Parquet cache and artifact loaders
-  ml/anomaly/            anomaly detection pipeline
-  ml/forecasting/        forecasting pipeline
-  data/Data/             raw source CSVs (not committed)
-  data/processed/        cleaned 3-minute CSVs (not committed)
-  data/output/           generated artifacts
+code/                    all deployable source
+  backend/               Express API
+    server.js            process entry point
+    src/app.js           middleware, routes, health check, error handling
+    src/controllers/     auth, meters, analytics, anomalies, forecast, reports, investigations
+    src/models/          User, Meter, Anomaly, Investigation
+    src/services/        ML HTTP client
+    src/utils/           CSV helpers
+  frontend/              React console (deployed to Vercel)
+    src/pages/           one component per screen
+    src/services/        API clients, session storage, preferences
+    src/components/      layout, toasts, state views, badges
+    src/charts/          Recharts wrappers
+  ml-service/            FastAPI analytics service + ML pipeline code
+    main.py              API entry point
+    ml/api_data.py       hourly Parquet cache and artifact loaders
+    ml/anomaly/          anomaly detection pipeline
+    ml/forecasting/      forecasting pipeline
+    data/Data/           raw source CSVs (not committed)
+    data/processed/      cleaned 3-minute CSVs (not committed)
+    data/output/         generated artifacts
 ```
 
 ## Prerequisites
@@ -64,7 +65,7 @@ ml-service/              FastAPI analytics service + ML pipeline code
 - Node.js 18+ and npm
 - Python 3.9+
 - MongoDB 7 running locally (or a connection string to another instance)
-- The MeterIQ processed data under `ml-service/data/processed/` for live analytics
+- The MeterIQ processed data under `code/ml-service/data/processed/` for live analytics
 
 The processed files are large and are not included in the source ZIP. The API expects files named `processed_*.csv` with at least these columns:
 
@@ -78,7 +79,7 @@ The current dataset uses 3-minute sampling (20 intervals per hour).
 
 Copy the examples and replace the secrets. Never commit a populated `.env`.
 
-### `backend/.env`
+### `code/backend/.env`
 
 ```env
 PORT=5050
@@ -93,7 +94,7 @@ NODE_ENV=development
 
 `JWT_SECRET` is required; the API refuses to start without it.
 
-### `frontend/.env`
+### `code/frontend/.env`
 
 ```env
 VITE_API_BASE_URL=http://localhost:5050/api
@@ -102,14 +103,14 @@ VITE_USE_LIVE_API=true
 
 ### ML service (optional)
 
-The ML service works without an env file and resolves paths relative to `ml-service/`. Override them only if the data lives elsewhere:
+The ML service works without an env file and resolves paths relative to `code/ml-service/`. Override them only if the data lives elsewhere:
 
 ```env
 ML_HOST=127.0.0.1
 ML_PORT=8000
-METERIQ_DATA_DIR=/absolute/path/to/ml-service/data
-METERIQ_OUTPUT_DIR=/absolute/path/to/ml-service/data/output
-METERIQ_CACHE_DIR=/absolute/path/to/ml-service/data/cache
+METERIQ_DATA_DIR=/absolute/path/to/code/ml-service/data
+METERIQ_OUTPUT_DIR=/absolute/path/to/code/ml-service/data/output
+METERIQ_CACHE_DIR=/absolute/path/to/code/ml-service/data/cache
 ML_CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
@@ -127,7 +128,7 @@ brew services start mongodb-community
 ### 2. ML service
 
 ```bash
-cd ml-service
+cd code/ml-service
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -142,7 +143,7 @@ minutes and is then reused.
 ### 3. Express API
 
 ```bash
-cd backend
+cd code/backend
 npm install
 cp .env.example .env   # then set a real JWT_SECRET
 npm start
@@ -153,14 +154,14 @@ The API prints `MeterIQ API listening on http://localhost:5050`.
 ### 4. Frontend
 
 ```bash
-cd frontend
+cd code/frontend
 npm install
 cp .env.example .env
 npm run dev -- --port 5173
 ```
 
-Open `http://localhost:5173/ucs503p-202627odd-MeterIQ/` (the Vite `base`
-defaults to that path; set `VITE_BASE_PATH=/` to serve from the root).
+Open `http://localhost:5173/`. The Vite `base` is `/` so the local dev server
+serves from the root, exactly like the Vercel deployment.
 
 ### Health checks
 
@@ -235,7 +236,7 @@ that header so the browser uses the server-provided filename.
 
 ## Data and ML artifacts
 
-The ML service reads generated files from `ml-service/data/output/`:
+The ML service reads generated files from `code/ml-service/data/output/`:
 
 | Artifact | Used by | State in this delivery |
 | --- | --- | --- |
@@ -252,7 +253,7 @@ fabricate any of them.
 
 ### Regenerating the ML artifacts
 
-All three pipelines run from `ml-service/` with the virtualenv active:
+All three pipelines run from `code/ml-service/` with the virtualenv active:
 
 ```bash
 # 1. Phase A: raw CSVs -> cleaned 3-minute data -> feature cache
@@ -355,7 +356,9 @@ stack.
 
 ## Deployment
 
-[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) covers the full topology: GitHub Pages
-for the frontend, Render (or Railway) for the Express API and FastAPI service,
-MongoDB Atlas for persistence, plus the environment matrix and post-deploy
-verification commands. `render.yaml` is a ready-to-apply Render Blueprint.
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) covers the full topology: **Vercel**
+for the frontend (`code/frontend`, Root Directory), **Render** (or Railway) for
+the Express API and FastAPI service, **MongoDB Atlas** for persistence, plus the
+environment matrix and post-deploy verification commands. `render.yaml` is a
+ready-to-apply Render Blueprint. The frontend is **not** deployed to GitHub
+Pages; the Pages site in this repository remains the MkDocs documentation.
