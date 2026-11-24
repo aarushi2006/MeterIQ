@@ -1,11 +1,20 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+// `VITE_BASE_PATH` lets the same source build for different mount points:
+//   GitHub Pages project site -> /MeterIQ/
+//   Vercel/Netlify/root host   -> /
+// The fallback keeps the local dev server on the URL used during development.
+const base = process.env.VITE_BASE_PATH || "/ucs503p-202627odd-MeterIQ/";
+
 export default defineConfig({
   plugins: [react()],
-  base: "/ucs503p-202627odd-MeterIQ/",
+  base,
   server: {
-    port: 5173,
+    port: Number(process.env.PORT || 5173),
+  },
+  preview: {
+    port: Number(process.env.PORT || 4173),
   },
   build: {
     outDir: "dist",

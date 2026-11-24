@@ -159,13 +159,15 @@ cp .env.example .env
 npm run dev -- --port 5173
 ```
 
-Open `http://localhost:5173`.
+Open `http://localhost:5173/ucs503p-202627odd-MeterIQ/` (the Vite `base`
+defaults to that path; set `VITE_BASE_PATH=/` to serve from the root).
 
 ### Health checks
 
 ```bash
 curl http://127.0.0.1:8000/health
-curl http://127.0.0.1:5050/health
+curl http://127.0.0.1:5050/health      # platform probe
+curl http://127.0.0.1:5050/api/health  # same payload under /api
 ```
 
 `/health` returns `503` when MongoDB or the ML service is unreachable, and
@@ -286,16 +288,27 @@ regenerate those with the pipeline commands below.
 ## Verification performed
 
 - Frontend production build: `npm run build` completes (758 kB JS; Vite emits
-  its >500 kB warning).
+  its >500 kB warning). Verified with both the local base path and the GitHub
+  Pages base (`VITE_BASE_PATH=/<repo>/`), with the API URL inlined into the
+  bundle.
+- Repository state: an unfinished `git merge origin/master` had left 30
+  frontend files with conflict markers (the app did not build). The merge was
+  resolved in favour of the integrated implementation, the duplicated
+  un-routed `RiskMapPage` was dropped, and the merge was committed.
 - ML test suite: `python -m pytest -q` → **76 passed** (synthetic data, no
   CSVs required).
 - ML pipelines executed end-to-end on the real dataset: Phase A feature build
   (19,648,865 rows), anomaly detection (all 84 meters, observation artifact
   written), and load forecasting (878,187 holdout predictions for 84 meters).
-- API smoke tests: `/health`, auth (`signup`/`login`/`me`/`logout`), role
-  enforcement, meters, meter detail/consumption, all analytics endpoints,
-  anomaly summary/status/list/per-meter list, forecast meta/series, report
-  summary, and all four CSV exports.
+- API smoke tests: `/health` **and** `/api/health`, auth
+  (`signup`/`login`/`me`/`logout`), role enforcement, meters, meter
+  detail/consumption, all analytics endpoints, anomaly
+  summary/status/list/per-meter list, forecast meta/series, report summary, and
+  all four CSV exports — 19/19 endpoints and 4/4 exports returned `200`; analyst
+  case creation returned `403`; an unauthenticated request returned `401`.
+- Security checks: `helmet` headers present, `RateLimit` headers on `/api/auth`
+  responses, CORS denies an unlisted origin (no `Access-Control-Allow-Origin`)
+  and allows the configured one.
 - Browser walkthrough: dashboard, meters, meter detail, consumption analytics,
   anomalies (observation table with filters/pagination), forecasting (chart,
   model and baseline metrics), investigations, reports, data quality, meter
@@ -328,9 +341,21 @@ stack.
 
 ## Security notes
 
-- Replace the example `JWT_SECRET`; the server exits if it is missing.
-- CORS allows configured `FRONTEND_URL` origins plus localhost/127.0.0.1 in
-  development. Tighten this for a deployed environment.
+- `JWT_SECRET` must be set in production. The server logs a loud warning when it
+  is missing rather than starting with a default secret.
+- CORS allows the origins in `FRONTEND_URL` (comma separated) plus
+  localhost/127.0.0.1 for development. Other origins get no CORS headers.
+- `helmet` sets standard security headers; `express-rate-limit` caps `/api` at
+  900 requests / 15 min and credential endpoints at 20 failed attempts / 15 min
+  per IP. `TRUST_PROXY` enables correct client-IP handling behind a platform
+  proxy.
 - Privileged roles are never self-assigned through the public API.
 - `.env` files and generated logs are excluded from source control and from the
   delivery ZIP.
+
+## Deployment
+
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) covers the full topology: GitHub Pages
+for the frontend, Render (or Railway) for the Express API and FastAPI service,
+MongoDB Atlas for persistence, plus the environment matrix and post-deploy
+verification commands. `render.yaml` is a ready-to-apply Render Blueprint.

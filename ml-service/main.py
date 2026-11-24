@@ -1253,8 +1253,12 @@ async def run_pipeline(background_tasks: BackgroundTasks):
 if __name__ == "__main__":
     import uvicorn
 
+    # Hosted platforms inject PORT and route to 0.0.0.0; a local run keeps
+    # loopback unless ML_HOST is set explicitly.
+    hosted = os.environ.get("PORT") is not None
+    default_host = "0.0.0.0" if hosted else "127.0.0.1"
     uvicorn.run(
         app,
-        host=os.environ.get("ML_HOST", "127.0.0.1"),
-        port=int(os.environ.get("ML_PORT", "8000")),
+        host=os.environ.get("ML_HOST", default_host),
+        port=int(os.environ.get("ML_PORT") or os.environ.get("PORT") or "8000"),
     )

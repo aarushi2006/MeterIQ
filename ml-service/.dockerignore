@@ -1,0 +1,22 @@
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+logs
+tests
+
+# Raw inputs and Phase A caches: large, gitignored, only needed to regenerate
+# artifacts (python -m ml.pipeline).
+data/Data
+data/processed
+data/features
+data/cache
+
+# Observation-level artifact is ~1 GB. Ship it to a volume, not into the image.
+data/output/anomaly/anomaly_observations.parquet
+data/output/**/*.png
+
+.env
+.env.*
+!.env.example

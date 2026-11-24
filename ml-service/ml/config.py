@@ -38,7 +38,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 @dataclass
 class Config:
-    data_dir: str = field(default_factory=lambda: _env_path("METERIQ_DATA_DIR", os.path.join(BASE_DIR, "DATA")))
+    data_dir: str = field(default_factory=lambda: _env_path("METERIQ_DATA_DIR", os.path.join(BASE_DIR, "data/Data")))
     output_dir: str = field(default_factory=lambda: _env_path("METERIQ_OUTPUT_DIR", os.path.join(BASE_DIR, "data/output")))
     cache_dir: str = field(default_factory=lambda: _env_path("METERIQ_CACHE_DIR", os.path.join(BASE_DIR, "data/cache")))
     log_dir: str = field(default_factory=lambda: _env_path("METERIQ_LOG_DIR", os.path.join(BASE_DIR, "logs")))

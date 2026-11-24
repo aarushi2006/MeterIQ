@@ -1,0 +1,62 @@
+# Render Blueprint for the MeterIQ API and ML service.
+#
+# The frontend is deployed to GitHub Pages by .github/workflows/deploy.yml.
+# MongoDB must be a MongoDB Atlas cluster (Render no longer offers managed
+# MongoDB); provide its connection string as MONGODB_URI when the blueprint
+# asks for it. Never commit that value.
+#
+# Apply with: Render Dashboard -> New -> Blueprint -> select this repository.
+
+services:
+  - type: web
+    name: meteriq-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: singapore
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5050
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 8h
+      # Atlas SRV string, e.g. mongodb+srv://user:pass@cluster.mongodb.net/meteriq
+      - key: MONGODB_URI
+        sync: false
+      # Public/internal URL of the ML service, e.g. http://meteriq-ml:8000
+      # (Render internal addresses are only resolvable inside the same region).
+      - key: ML_SERVICE_URL
+        sync: false
+      - key: ML_SERVICE_TIMEOUT_MS
+        value: 60000
+      # Exact Pages origin, no trailing slash, comma-separate multiple origins.
+      - key: FRONTEND_URL
+        sync: false
+      - key: TRUST_PROXY
+        value: 1
+
+  - type: web
+    name: meteriq-ml
+    runtime: docker
+    rootDir: ml-service
+    dockerfilePath: ./Dockerfile
+    # The service keeps the anomaly summary, hourly cache and forecast
+    # artifacts in memory (~1.1 GB observed), so the 512 MB Starter plan is not
+    # sufficient; Standard provides 2 GB.
+    plan: standard
+    region: singapore
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ML_CORS_ORIGINS
+        sync: false
+      - key: METERIQ_OUTPUT_DIR
+        value: /app/data/output
+      - key: METERIQ_CACHE_DIR
+        value: /app/data/cache

@@ -1,0 +1,382 @@
+{
+  "generated_at": "2026-11-18T07:00:10.730409+00:00",
+  "pipeline_version": "phase-a.5",
+  "uc1_version": "phase-b.1-v2",
+  "features_path": "data/cache/features_ced4c059662d7d2b.parquet",
+  "model_name": "statistical_baseline + isolation_forest",
+  "scoring_methodology": "baseline_severity: max of three per-meter-normalized signal strengths (deviation_z, pct_change_prev, same-week deviation / rolling_std_1d), each clipped via its own review/high threshold. isolation_forest_severity: percentile rank of the raw anomaly score against that meter's OWN TRAINING-SET score distribution (not the scoring window) - fixed in Phase B.1 from an earlier per-window min-max scaling that forced every scoring window to span 0-100 regardless of actual anomalousness. combined_severity: max(baseline_strength, isolation_forest_strength), where each component is converted to a 0-1 strength using ITS OWN thresholds before combining (isolation_forest_review_percentile=90/isolation_forest_high_percentile=97 for IF, since its percentile scale is not comparable to baseline's 0-100 scale) - this combination-level fix was also added in Phase B.1 after the naive shared-threshold combination produced an 83% flag rate from Isolation Forest alone on real data.",
+  "isolation_forest_params": {
+    "n_estimators": 100,
+    "contamination": 0.01,
+    "random_seed": 42,
+    "train_fraction": 0.7,
+    "min_observations_per_meter": 2000,
+    "severity_review_percentile": 90.0,
+    "severity_high_percentile": 97.0
+  },
+  "risk_thresholds": {
+    "review_severity": 25.0,
+    "high_severity": 55.0
+  },
+  "n_meters": 84,
+  "n_meters_with_isolation_forest": 84,
+  "n_observations_scored": 19648865,
+  "evaluation": {
+    "anomaly_counts": {
+      "total_observations": 19648865,
+      "normal_count": 17656871,
+      "review_count": 489523,
+      "high_risk_count": 1502471,
+      "review_rate": 0.0249,
+      "high_risk_rate": 0.0765
+    },
+    "score_distribution": {
+      "mean": 8.304,
+      "std": 25.042,
+      "p50": 0.0,
+      "p90": 26.62,
+      "p95": 96.72,
+      "p99": 100.0,
+      "max": 100.0
+    },
+    "temporal_distribution": {
+      "by_hour": {
+        "0": 74916,
+        "1": 69202,
+        "2": 63988,
+        "3": 60036,
+        "4": 59062,
+        "5": 63628,
+        "6": 68712,
+        "7": 82712,
+        "8": 99889,
+        "9": 109451,
+        "10": 105221,
+        "11": 98056,
+        "12": 97522,
+        "13": 94733,
+        "14": 91823,
+        "15": 86541,
+        "16": 84955,
+        "17": 84189,
+        "18": 84634,
+        "19": 81733,
+        "20": 81419,
+        "21": 83871,
+        "22": 83452,
+        "23": 82249
+      },
+      "by_day_of_week": {
+        "0": 285458,
+        "1": 274839,
+        "2": 274367,
+        "3": 265400,
+        "4": 270945,
+        "5": 300147,
+        "6": 320838
+      }
+    },
+    "per_meter_distribution": {
+      "meters_evaluated": 84,
+      "anomaly_rate_mean": 0.099,
+      "anomaly_rate_std": 0.0403,
+      "anomaly_rate_min": 0.0115,
+      "anomaly_rate_max": 0.2103,
+      "meters_with_zero_flags": 0
+    },
+    "threshold_sensitivity": [
+      {
+        "review_threshold": 30,
+        "high_threshold": 60,
+        "review_rate": 0.0239,
+        "high_risk_rate": 0.0731
+      },
+      {
+        "review_threshold": 30,
+        "high_threshold": 65,
+        "review_rate": 0.027,
+        "high_risk_rate": 0.07
+      },
+      {
+        "review_threshold": 30,
+        "high_threshold": 70,
+        "review_rate": 0.0318,
+        "high_risk_rate": 0.0652
+      },
+      {
+        "review_threshold": 30,
+        "high_threshold": 75,
+        "review_rate": 0.0348,
+        "high_risk_rate": 0.0622
+      },
+      {
+        "review_threshold": 30,
+        "high_threshold": 80,
+        "review_rate": 0.0375,
+        "high_risk_rate": 0.0595
+      },
+      {
+        "review_threshold": 35,
+        "high_threshold": 60,
+        "review_rate": 0.0185,
+        "high_risk_rate": 0.0731
+      },
+      {
+        "review_threshold": 35,
+        "high_threshold": 65,
+        "review_rate": 0.0217,
+        "high_risk_rate": 0.07
+      },
+      {
+        "review_threshold": 35,
+        "high_threshold": 70,
+        "review_rate": 0.0265,
+        "high_risk_rate": 0.0652
+      },
+      {
+        "review_threshold": 35,
+        "high_threshold": 75,
+        "review_rate": 0.0294,
+        "high_risk_rate": 0.0622
+      },
+      {
+        "review_threshold": 35,
+        "high_threshold": 80,
+        "review_rate": 0.0322,
+        "high_risk_rate": 0.0595
+      },
+      {
+        "review_threshold": 40,
+        "high_threshold": 60,
+        "review_rate": 0.0149,
+        "high_risk_rate": 0.0731
+      },
+      {
+        "review_threshold": 40,
+        "high_threshold": 65,
+        "review_rate": 0.018,
+        "high_risk_rate": 0.07
+      },
+      {
+        "review_threshold": 40,
+        "high_threshold": 70,
+        "review_rate": 0.0228,
+        "high_risk_rate": 0.0652
+      },
+      {
+        "review_threshold": 40,
+        "high_threshold": 75,
+        "review_rate": 0.0257,
+        "high_risk_rate": 0.0622
+      },
+      {
+        "review_threshold": 40,
+        "high_threshold": 80,
+        "review_rate": 0.0285,
+        "high_risk_rate": 0.0595
+      },
+      {
+        "review_threshold": 45,
+        "high_threshold": 60,
+        "review_rate": 0.0104,
+        "high_risk_rate": 0.0731
+      },
+      {
+        "review_threshold": 45,
+        "high_threshold": 65,
+        "review_rate": 0.0135,
+        "high_risk_rate": 0.07
+      },
+      {
+        "review_threshold": 45,
+        "high_threshold": 70,
+        "review_rate": 0.0183,
+        "high_risk_rate": 0.0652
+      },
+      {
+        "review_threshold": 45,
+        "high_threshold": 75,
+        "review_rate": 0.0213,
+        "high_risk_rate": 0.0622
+      },
+      {
+        "review_threshold": 45,
+        "high_threshold": 80,
+        "review_rate": 0.024,
+        "high_risk_rate": 0.0595
+      },
+      {
+        "review_threshold": 50,
+        "high_threshold": 60,
+        "review_rate": 0.0069,
+        "high_risk_rate": 0.0731
+      },
+      {
+        "review_threshold": 50,
+        "high_threshold": 65,
+        "review_rate": 0.01,
+        "high_risk_rate": 0.07
+      },
+      {
+        "review_threshold": 50,
+        "high_threshold": 70,
+        "review_rate": 0.0148,
+        "high_risk_rate": 0.0652
+      },
+      {
+        "review_threshold": 50,
+        "high_threshold": 75,
+        "review_rate": 0.0177,
+        "high_risk_rate": 0.0622
+      },
+      {
+        "review_threshold": 50,
+        "high_threshold": 80,
+        "review_rate": 0.0205,
+        "high_risk_rate": 0.0595
+      }
+    ],
+    "qualitative_spot_check_top10": [
+      {
+        "meter_id": "BR02",
+        "timestamp": "2019-07-10 06:09:00",
+        "consumption": 0.013000000268220901,
+        "combined_severity": 100.0,
+        "risk_level": "HIGH_RISK",
+        "data_quality_flag": false,
+        "reasons": [
+          "Consumption is 8.0 standard deviations below the meter's recent (24-hour) baseline."
+        ]
+      },
+      {
+        "meter_id": "BR02",
+        "timestamp": "2019-07-10 06:12:00",
+        "consumption": 0.014000000432133675,
+        "combined_severity": 100.0,
+        "risk_level": "HIGH_RISK",
+        "data_quality_flag": false,
+        "reasons": [
+          "Consumption is 5.8 standard deviations below the meter's recent (24-hour) baseline."
+        ]
+      },
+      {
+        "meter_id": "BR02",
+        "timestamp": "2019-07-10 06:15:00",
+        "consumption": 0.014000000432133675,
+        "combined_severity": 100.0,
+        "risk_level": "HIGH_RISK",
+        "data_quality_flag": false,
+        "reasons": [
+          "Consumption is 5.1 standard deviations below the meter's recent (24-hour) baseline."
+        ]
+      },
+      {
+        "meter_id": "BR02",
+        "timestamp": "2019-07-10 06:18:00",
+        "consumption": 0.014000000432133675,
+        "combined_severity": 100.0,
+        "risk_level": "HIGH_RISK",
+        "data_quality_flag": false,
+        "reasons": [
+          "Consumption is 4.6 standard deviations below the meter's recent (24-hour) baseline."
+        ]
+      },
+      {
+        "meter_id": "BR02",
+        "timestamp": "2019-07-10 06:21:00",
+        "consumption": 0.014000000432133675,
+        "combined_severity": 100.0,
+        "risk_level": "HIGH_RISK",
+        "data_quality_flag": false,
+        "reasons": [
+          "Consumption is 4.3 standard deviations below the meter's recent (24-hour) baseline."
+        ]
+      },
+      {
+        "meter_id": "BR02",
+        "timestamp": "2019-07-10 06:24:00",
+        "consumption": 0.013000000268220901,
+        "combined_severity": 100.0,
+        "risk_level": "HIGH_RISK",
+        "data_quality_flag": false,
+        "reasons": [
+          "Consumption is 4.5 standard deviations below the meter's recent (24-hour) baseline."
+        ]
+      },
+      {
+        "meter_id": "BR02",
+        "timestamp": "2019-07-10 06:27:00",
+        "consumption": 0.014000000432133675,
+        "combined_severity": 100.0,
+        "risk_level": "HIGH_RISK",
+        "data_quality_flag": false,
+        "reasons": [
+          "Consumption is 3.7 standard deviations below the meter's recent (24-hour) baseline."
+        ]
+      },
+      {
+        "meter_id": "BR02",
+        "timestamp": "2019-07-10 06:30:00",
+        "consumption": 0.014000000432133675,
+        "combined_severity": 100.0,
+        "risk_level": "HIGH_RISK",
+        "data_quality_flag": false,
+        "reasons": [
+          "Consumption is 3.5 standard deviations below the meter's recent (24-hour) baseline."
+        ]
+      },
+      {
+        "meter_id": "BR02",
+        "timestamp": "2019-07-10 06:33:00",
+        "consumption": 0.014000000432133675,
+        "combined_severity": 100.0,
+        "risk_level": "HIGH_RISK",
+        "data_quality_flag": false,
+        "reasons": [
+          "Consumption is 3.3 standard deviations below the meter's recent (24-hour) baseline."
+        ]
+      },
+      {
+        "meter_id": "BR02",
+        "timestamp": "2019-07-10 06:36:00",
+        "consumption": 0.013000000268220901,
+        "combined_severity": 100.0,
+        "risk_level": "HIGH_RISK",
+        "data_quality_flag": false,
+        "reasons": [
+          "Consumption is 3.6 standard deviations below the meter's recent (24-hour) baseline."
+        ]
+      }
+    ]
+  },
+  "component_comparison": {
+    "note": "Rates below use the SAME risk_review_severity/risk_high_severity thresholds for all three rows for comparability, even though isolation_forest_severity alone is on a percentile scale for which those thresholds are not the properly-calibrated ones (see isolation_forest_review_percentile/isolation_forest_high_percentile for the thresholds actually used when combining). This row exists to show why combining was necessary, not as a recommended standalone configuration.",
+    "baseline_only": {
+      "review_rate": 0.0199,
+      "high_risk_rate": 0.0517,
+      "total_flagged_rate": 0.0717
+    },
+    "isolation_forest_only_raw_percentile": {
+      "review_rate": 0.2606,
+      "high_risk_rate": 0.5564,
+      "total_flagged_rate": 0.817
+    },
+    "combined_fixed": {
+      "review_rate": 0.0249,
+      "high_risk_rate": 0.0765,
+      "total_flagged_rate": 0.1014
+    }
+  },
+  "elapsed_seconds": 120.45,
+  "peak_memory_note": "Not self-measured inside this function - see README.md's \"Full-scale benchmark\" section for the externally-measured resource.getrusage() peak RSS for the run this manifest describes, to avoid this file claiming an unmeasured number.",
+  "output_files": {
+    "anomaly_observations": "/Users/yashitarora/Desktop/MeterIQ/ml-service/data/output/anomaly/anomaly_observations.parquet",
+    "meter_anomaly_summary": "/Users/yashitarora/Desktop/MeterIQ/ml-service/data/output/anomaly/meter_anomaly_summary.parquet",
+    "plots": [
+      "/Users/yashitarora/Desktop/MeterIQ/ml-service/data/output/anomaly/plots/severity_distribution.png",
+      "/Users/yashitarora/Desktop/MeterIQ/ml-service/data/output/anomaly/plots/anomaly_counts_per_meter.png",
+      "/Users/yashitarora/Desktop/MeterIQ/ml-service/data/output/anomaly/plots/timeseries_MH34.png",
+      "/Users/yashitarora/Desktop/MeterIQ/ml-service/data/output/anomaly/plots/severity_MH34.png"
+    ]
+  }
+}

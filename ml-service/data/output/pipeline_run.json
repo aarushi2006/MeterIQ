@@ -1,0 +1,75 @@
+{
+  "pipeline_version": "phase-a.5",
+  "schema_version": "schema-v1",
+  "input_files": [
+    "SM Cleaned Data BR2019.csv",
+    "CEEW - Smart meter data Bareilly 2020.csv",
+    "CEEW - Smart meter data Bareilly 2021.csv",
+    "CEEW - Smart meter data Mathura 2019.csv",
+    "CEEW - Smart meter data Mathura 2020.csv",
+    "SM Cleaned Data MH2021.csv"
+  ],
+  "sample_meters": null,
+  "clean_report": {
+    "SM Cleaned Data BR2019.csv": {
+      "status": "ok",
+      "rows_in": 2919315,
+      "dropout_rows_removed": 184728,
+      "rows_removed_by_clean_dataset": 0,
+      "rows_out": 2734587
+    },
+    "CEEW - Smart meter data Bareilly 2020.csv": {
+      "status": "ok",
+      "rows_in": 6627360,
+      "dropout_rows_removed": 467956,
+      "rows_removed_by_clean_dataset": 0,
+      "rows_out": 6159404
+    },
+    "CEEW - Smart meter data Bareilly 2021.csv": {
+      "status": "ok",
+      "rows_in": 3948960,
+      "dropout_rows_removed": 343469,
+      "rows_removed_by_clean_dataset": 0,
+      "rows_out": 3605491
+    },
+    "CEEW - Smart meter data Mathura 2019.csv": {
+      "status": "ok",
+      "rows_in": 3588874,
+      "dropout_rows_removed": 264914,
+      "rows_removed_by_clean_dataset": 0,
+      "rows_out": 3323960
+    },
+    "CEEW - Smart meter data Mathura 2020.csv": {
+      "status": "ok",
+      "rows_in": 3759360,
+      "dropout_rows_removed": 417947,
+      "rows_removed_by_clean_dataset": 0,
+      "rows_out": 3341413
+    },
+    "SM Cleaned Data MH2021.csv": {
+      "status": "ok",
+      "rows_in": 550560,
+      "dropout_rows_removed": 66550,
+      "rows_removed_by_clean_dataset": 0,
+      "rows_out": 484010
+    }
+  },
+  "validation_report": {
+    "required_columns": true,
+    "no_missing_essentials": true,
+    "timestamp_validity": true,
+    "meter_id_validity": true,
+    "region_known": true,
+    "no_duplicates": true,
+    "consumption_range": true,
+    "timestamp_ordering": true
+  },
+  "feature_report": {
+    "status": "computed",
+    "rows": 19648865
+  },
+  "include_weather_proxy": true,
+  "output_path": "/Users/yashitarora/Desktop/MeterIQ/ml-service/data/cache/features_ced4c059662d7d2b.parquet",
+  "elapsed_seconds": 72.02,
+  "generated_at": "2026-11-18T06:57:53.552367+00:00"
+}
