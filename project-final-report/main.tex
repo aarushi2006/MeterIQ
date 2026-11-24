@@ -1,0 +1,841 @@
+\documentclass{tietreport}
+
+% =========================================================
+% PACKAGES
+% =========================================================
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{url}
+\usepackage{ragged2e}
+
+% =========================================================
+% BIBLIOGRAPHY
+% =========================================================
+
+\usepackage[
+    backend=biber,
+    style=numeric,
+    sorting=none,
+    maxnames=5,
+    minnames=3,
+    doi=false,
+    isbn=false,
+    url=true,
+    eprint=false
+]{biblatex}
+
+\addbibresource{references.bib}
+
+% =========================================================
+% HYPERREF
+% =========================================================
+
+\hypersetup{
+    colorlinks=false,
+    hidelinks,
+    pdfborder={0 0 0}
+}
+
+% =========================================================
+% PAGE / FLOAT SETTINGS
+% =========================================================
+
+% Prevent unnecessary blank pages caused by openright.
+\let\cleardoublepage\clearpage
+
+% Allow figures to move naturally instead of creating
+% large empty spaces.
+\setcounter{topnumber}{2}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.75}
+\renewcommand{\textfraction}{0.10}
+\renewcommand{\floatpagefraction}{0.70}
+
+% Paragraph spacing
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.45em}
+
+% List spacing
+\setlist[itemize]{
+    leftmargin=*,
+    itemsep=0.25em,
+    topsep=0.3em
+}
+
+\setlist[enumerate]{
+    leftmargin=*,
+    itemsep=0.25em,
+    topsep=0.3em
+}
+
+% =========================================================
+% TITLE PAGE
+% =========================================================
+
+\TitlePageHeader{UCS 503 - Software Engineering}
+
+\ProjectTitle{MeterIQ}
+
+\ProjectSubTitle{
+    Explainable Smart Meter Analytics Platform
+}
+\author{%
+  \begin{tabular}{c c}
+    \texttt{1024160006} & Yashit Arora \\
+    \texttt{1024160008} & Aarushi Gahlawat
+  \end{tabular}%
+}
+
+\TitlePageSubText{%
+  Group: 3P11\\
+  BE Third Year, Computer Science and Engineering
+}
+
+\AdvisorName{
+    Faculty Advisor: \texttt{Mr.Jeelani}
+}
+
+\TitlePageFooterText{
+    \large Mid-Semester Project Evaluation \\[0.2cm]
+    \bfseries Computer Science and Engineering\\
+    Department\\[0.15cm]
+    Thapar Institute of Engineering and Technology, Patiala
+}
+
+% =========================================================
+% DOCUMENT
+% =========================================================
+
+\begin{document}
+
+\maketitle
+
+% =========================================================
+% CONTENTS
+% =========================================================
+
+\tableofcontents
+
+% =========================================================
+% CHAPTER 1
+% =========================================================
+
+\chapter{Introduction}
+
+% ---------------------------------------------------------
+\section{Background and Context}
+% ---------------------------------------------------------
+
+MeterIQ is an explainable smart-meter analytics platform designed to support
+the analysis of electricity consumption data. The system focuses on two major
+analytical tasks: identifying unusual consumption behaviour and performing
+short-term load forecasting.
+
+The project uses smart-meter data from the Mathura and Bareilly regions.
+Smart-meter readings contain temporal consumption information that can be
+analysed to understand normal usage patterns, unusual observations, and
+future demand.
+
+The platform is designed as a decision-support system for authorised users.
+Instead of automatically declaring an observation as electricity theft, the
+system is intended to identify anomalous behaviour and provide risk-oriented
+information that can support further human investigation.
+
+The project combines data preparation, exploratory data analysis, feature
+engineering, machine-learning analysis, forecasting, and an interactive
+dashboard into a unified software system.
+
+% ---------------------------------------------------------
+\section{Problem Statement}
+% ---------------------------------------------------------
+
+Traditional examination of smart-meter data can require manual inspection of
+large volumes of consumption records. This makes it difficult to quickly
+identify unusual consumption patterns and understand their possible causes.
+
+There is therefore a need for a software platform that can:
+
+\begin{itemize}
+    \item organise and process smart-meter consumption data;
+    \item identify unusual consumption behaviour;
+    \item provide short-term load forecasting;
+    \item present analytical results in an understandable form;
+    \item provide explanations and contributing factors for flagged observations;
+    \item support authorised personnel during investigation; and
+    \item provide a unified dashboard for accessing the analytical results.
+\end{itemize}
+
+MeterIQ addresses these requirements by combining data analytics and
+visualisation in a single software-engineering system.
+
+% ---------------------------------------------------------
+\section{Project Objectives}
+% ---------------------------------------------------------
+
+The main objectives of MeterIQ are:
+
+\begin{enumerate}
+    \item Understand and prepare smart-meter consumption datasets.
+    \item Perform exploratory data analysis to identify consumption patterns
+    and unusual observations.
+    \item Develop suitable temporal and consumption-based features.
+    \item Develop an anomaly and electricity-theft-risk analysis module.
+    \item Develop a short-term load forecasting module.
+    \item Provide explainable analytical results rather than only binary
+    decisions.
+    \item Develop an interactive dashboard for authorised users.
+    \item Integrate the analytical modules into a unified software system.
+\end{enumerate}
+
+% =========================================================
+% CHAPTER 2
+% =========================================================
+
+\chapter{Methodology and Design}
+
+% ---------------------------------------------------------
+\section{System Architecture}
+% ---------------------------------------------------------
+
+MeterIQ follows a modular architecture in which smart-meter data is first
+prepared and analysed before being passed to the analytical modules and
+dashboard.
+
+The major processing stages are:
+
+\begin{enumerate}
+    \item Smart-meter data input.
+    \item Data preprocessing.
+    \item Exploratory data analysis.
+    \item Feature engineering.
+    \item Anomaly and electricity-theft-risk analysis.
+    \item Short-term load forecasting.
+    \item Explainable dashboard.
+\end{enumerate}
+
+The architecture allows the individual modules to be developed and tested
+independently before complete system integration.
+
+% ---------------------------------------------------------
+\subsection{High-Level Design}
+% ---------------------------------------------------------
+
+The high-level workflow of MeterIQ can be represented as:
+
+\begin{center}
+\textbf{
+Smart-Meter Data
+$\rightarrow$
+Data Preparation
+$\rightarrow$
+Feature Engineering
+$\rightarrow$
+Analytics
+$\rightarrow$
+Dashboard
+}
+\end{center}
+
+The analytics stage contains two major components:
+
+\begin{itemize}
+    \item anomaly and electricity-theft-risk analysis; and
+    \item short-term load forecasting.
+\end{itemize}
+
+The dashboard is intended to present the results of both components through
+an interactive interface.
+
+% ---------------------------------------------------------
+\subsection{System Design}
+% ---------------------------------------------------------
+
+The system is designed around four major actors or functional areas:
+
+\begin{itemize}
+    \item smart-meter data source;
+    \item data and analytics processing;
+    \item authorised user; and
+    \item dashboard and decision-support interface.
+\end{itemize}
+
+The system design diagrams described in the following sections provide
+different views of the same platform.
+
+% =========================================================
+% SOFTWARE ENGINEERING DESIGN
+% =========================================================
+
+\section{Software Engineering Design}
+
+The software engineering design of MeterIQ defines the interaction between
+users and the system, the flow of information through the platform, the
+underlying entities, and the overall operational workflow.
+
+% ---------------------------------------------------------
+\subsection{Use Case Diagram}
+% ---------------------------------------------------------
+
+The Use Case Diagram represents the interaction between the authorised user
+and the MeterIQ system.
+
+The authorised user can access smart-meter information, analyse consumption,
+review anomaly and electricity-theft-risk indicators, inspect explanations,
+view forecasts, and use the dashboard for operational decision support.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[
+        width=\textwidth,
+        height=0.62\textheight,
+        keepaspectratio,
+        trim=2.5cm 4.0cm 2.5cm 4.0cm,
+        clip
+    ]{MeterIQ_Use_Case_Diagram.pdf}
+    \caption{MeterIQ Use Case Diagram}
+    \label{fig:usecase}
+\end{figure}
+
+% ---------------------------------------------------------
+\subsection{Data Flow Diagram}
+% ---------------------------------------------------------
+
+The Data Flow Diagrams describe how smart-meter data moves through the
+MeterIQ system and how analytical results are delivered to users.
+
+\subsubsection{DFD Level 0}
+
+The Level 0 DFD provides a context-level representation of the MeterIQ
+system.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[
+        width=0.95\textwidth,
+        height=0.50\textheight,
+        keepaspectratio
+    ]{dfd_level0.png}
+    \caption{MeterIQ Data Flow Diagram Level 0}
+    \label{fig:dfd0}
+\end{figure}
+
+\subsubsection{DFD Level 1}
+
+The Level 1 DFD decomposes the MeterIQ system into major processing stages,
+including data preparation, analytics, and presentation.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[
+        width=0.95\textwidth,
+        height=0.58\textheight,
+        keepaspectratio
+    ]{dfd_level1.png}
+    \caption{MeterIQ Data Flow Diagram Level 1}
+    \label{fig:dfd1}
+\end{figure}
+
+\subsubsection{DFD Level 2}
+
+The Level 2 DFD provides a more detailed representation of the analytical
+processing performed within the system.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[
+        width=0.95\textwidth,
+        height=0.58\textheight,
+        keepaspectratio
+    ]{MeterIQ_DFD_Level2.png}
+    \caption{MeterIQ Data Flow Diagram Level 2}
+    \label{fig:dfd2}
+\end{figure}
+
+% ---------------------------------------------------------
+\subsection{Entity Relationship Diagram}
+% ---------------------------------------------------------
+
+The Entity Relationship Diagram represents the major entities and their
+relationships within the MeterIQ system.
+
+The database design supports smart-meter information, consumption records,
+analytical outputs, anomaly results, risk information, and
+investigation-related information.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[
+        width=0.95\textwidth,
+        height=0.58\textheight,
+        keepaspectratio
+    ]{ERD_MeterIQ.drawio (1).png}
+    \caption{MeterIQ Entity Relationship Diagram}
+    \label{fig:erd}
+\end{figure}
+
+% ---------------------------------------------------------
+\subsection{Activity Diagram}
+% ---------------------------------------------------------
+
+The Activity Diagram represents the sequence of activities involved in
+processing smart-meter information through the MeterIQ platform.
+
+The general workflow starts with smart-meter data, followed by data
+preparation and feature generation. The prepared information is then used
+by the analytical modules, after which the results are presented to the
+authorised user.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[
+        width=0.95\textwidth,
+        height=0.60\textheight,
+        keepaspectratio
+    ]{MeterIQ_Activity_Diagram_NEW (1).drawio.png}
+    \caption{MeterIQ Activity Diagram}
+    \label{fig:activity}
+\end{figure}
+
+% =========================================================
+% TECHNICAL STACK
+% =========================================================
+
+\section{Technical Stack}
+
+The project uses technologies appropriate for data analytics, machine
+learning, and interactive dashboard development.
+
+\begin{table}[htbp]
+\centering
+\caption{MeterIQ Technical Stack}
+\label{tab:techstack}
+\begin{tabular}{>{\bfseries}p{0.28\textwidth} p{0.62\textwidth}}
+\toprule
+Area & Technology / Tool \\
+\midrule
+Programming & Python, JavaScript \\
+Data Analysis & Pandas, NumPy \\
+Machine Learning & Scikit-learn \\
+Visualisation & Matplotlib, Recharts \\
+Frontend & React and Vite \\
+Development & VS Code, Jupyter / Google Colab \\
+Version Control & Git and GitHub \\
+Dashboard & React-based interactive dashboard \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =========================================================
+% IMPLEMENTATION DETAILS
+% =========================================================
+
+\section{Implementation Details}
+
+% ---------------------------------------------------------
+\subsection{Data Preprocessing}
+% ---------------------------------------------------------
+
+The smart-meter data is first examined and prepared before analytical
+processing.
+
+The preprocessing stage focuses on:
+
+\begin{itemize}
+    \item checking the structure of the input datasets;
+    \item handling date and time information;
+    \item identifying duplicate observations;
+    \item checking missing or inconsistent values;
+    \item maintaining appropriate temporal ordering; and
+    \item preparing the data for subsequent feature engineering.
+\end{itemize}
+
+The preprocessing stage is important because incorrect temporal ordering or
+data leakage can produce misleading analytical results.
+
+% ---------------------------------------------------------
+\subsection{Exploratory Data Analysis}
+% ---------------------------------------------------------
+
+Exploratory Data Analysis is used to understand the characteristics of
+smart-meter consumption data before model development.
+
+The analysis focuses on:
+
+\begin{itemize}
+    \item consumption distributions;
+    \item temporal consumption patterns;
+    \item hourly and daily behaviour;
+    \item unusual consumption observations;
+    \item variability in consumption; and
+    \item relationships between temporal and consumption variables.
+\end{itemize}
+
+EDA helps establish an understanding of normal consumption behaviour before
+developing analytical models.
+
+% ---------------------------------------------------------
+\subsection{Feature Engineering}
+% ---------------------------------------------------------
+
+Temporal and lag-based features are created from the prepared smart-meter
+data.
+
+The planned feature set includes:
+
+\begin{itemize}
+    \item hour;
+    \item day;
+    \item month;
+    \item weekday;
+    \item lagged consumption;
+    \item previous-day consumption; and
+    \item previous-week consumption.
+\end{itemize}
+
+The same-hour-last-week concept is particularly relevant to the forecasting
+module because electricity demand can exhibit recurring weekly patterns.
+
+Feature engineering is performed while maintaining chronological ordering
+to reduce the possibility of data leakage.
+
+% ---------------------------------------------------------
+\subsection{Module 1: Anomaly and Electricity-Theft-Risk Analysis}
+% ---------------------------------------------------------
+
+The first analytical module focuses on identifying unusual smart-meter
+consumption behaviour.
+
+The purpose of this module is not to automatically declare a meter as
+committing electricity theft. Instead, unusual observations are converted
+into risk-oriented analytical information that can support investigation by
+authorised personnel.
+
+The module is expected to consider:
+
+\begin{itemize}
+    \item unusual consumption patterns;
+    \item deviation from expected behaviour;
+    \item temporal anomalies;
+    \item relevant meter-level information;
+    \item anomaly scores; and
+    \item contributing factors that explain why an observation was flagged.
+\end{itemize}
+
+The final implementation and validation of the anomaly-detection component
+are part of the subsequent development stage.
+
+% ---------------------------------------------------------
+\subsection{Module 2: Short-Term Load Forecasting}
+% ---------------------------------------------------------
+
+The second analytical module focuses on short-term load forecasting.
+
+The forecasting task is designed to estimate future electricity consumption
+for short horizons ranging from approximately 15 minutes to 24 hours.
+
+A same-hour-last-week baseline is used as an important reference point.
+Forecasting performance will be evaluated using suitable error metrics such
+as Mean Absolute Error (MAE) and Mean Absolute Percentage Error (MAPE).
+
+The evaluation will use a chronological holdout rather than a random split
+so that future observations do not influence training information.
+
+% ---------------------------------------------------------
+\subsection{Module 3: Explainable Dashboard}
+% ---------------------------------------------------------
+
+The dashboard provides a unified interface for accessing smart-meter
+analytics.
+
+The dashboard is designed to provide:
+
+\begin{itemize}
+    \item meter search and selection;
+    \item consumption history;
+    \item anomaly and risk information;
+    \item contributing factors and explanations;
+    \item short-term forecasts;
+    \item visual analytics; and
+    \item operational decision-support information.
+\end{itemize}
+
+The initial frontend implementation has been developed using React, Vite,
+and Recharts. At the current stage, the dashboard provides the interface
+foundation, while complete backend and machine-learning integration remains
+part of the next development stage.
+
+% ---------------------------------------------------------
+\subsection{Backend and Database Development}
+% ---------------------------------------------------------
+
+The backend and persistent database layer are planned for the next stage of
+development.
+
+The database will provide persistent storage for relevant meter information,
+consumption records, analytical outputs, risk information, forecast outputs,
+and investigation-related information.
+
+The backend and database will subsequently be integrated with the existing
+frontend and machine-learning modules.
+
+% =========================================================
+% CHAPTER 3
+% =========================================================
+
+\chapter{Results and Evaluation}
+
+% ---------------------------------------------------------
+\section{Current Project Status}
+% ---------------------------------------------------------
+
+The current mid-semester development has established the software-engineering
+and data-analysis foundation of the MeterIQ platform.
+
+The following activities have been completed or substantially developed:
+
+\begin{enumerate}
+    \item Project planning and Gantt chart preparation.
+    \item Requirements and system-level design.
+    \item Use Case Diagram.
+    \item Data Flow Diagrams.
+    \item Exploratory Data Analysis.
+    \item Data preprocessing.
+    \item Feature engineering.
+    \item Prepared dataset validation.
+    \item Initial dashboard development.
+\end{enumerate}
+
+The remaining development activities include complete machine-learning
+implementation, forecasting validation, backend development, persistent
+database integration, complete system integration, and final testing.
+
+% ---------------------------------------------------------
+\section{Testing Methodology}
+% ---------------------------------------------------------
+
+Testing will be performed at multiple levels to verify the correctness and
+reliability of the MeterIQ system.
+
+\subsection{Data Testing}
+
+Data testing will verify:
+
+\begin{itemize}
+    \item input structure;
+    \item missing values;
+    \item duplicate records;
+    \item temporal ordering;
+    \item feature consistency; and
+    \item processed dataset validity.
+\end{itemize}
+
+\subsection{Model Testing}
+
+The anomaly and forecasting modules will be evaluated using appropriate
+datasets and evaluation procedures.
+
+For anomaly analysis, the evaluation will focus on whether unusual
+behaviour can be identified consistently and whether the generated
+explanations correspond to the underlying features.
+
+For forecasting, chronological validation will be used to measure forecasting
+errors without introducing future information into the training stage.
+
+\subsection{Interface Testing}
+
+The dashboard will be tested for:
+
+\begin{itemize}
+    \item navigation;
+    \item meter selection;
+    \item visualisation rendering;
+    \item display of analytical results;
+    \item explanation presentation; and
+    \item usability of the main workflow.
+\end{itemize}
+
+\subsection{Integration Testing}
+
+Integration testing will verify the complete flow:
+
+\begin{center}
+\textbf{
+Data
+$\rightarrow$
+Processing
+$\rightarrow$
+Analytics
+$\rightarrow$
+Backend
+$\rightarrow$
+Dashboard
+}
+\end{center}
+
+% ---------------------------------------------------------
+\section{Performance Metrics}
+% ---------------------------------------------------------
+
+The final evaluation will use metrics appropriate to each analytical
+component.
+
+For forecasting, the primary metrics will include:
+
+\begin{itemize}
+    \item Mean Absolute Error (MAE);
+    \item Mean Absolute Percentage Error (MAPE); and
+    \item comparison against the same-hour-last-week baseline.
+\end{itemize}
+
+For anomaly analysis, evaluation will depend on the availability and quality
+of appropriate validation information. The final metrics will therefore be
+reported after the anomaly-detection implementation and validation have been
+completed.
+
+No final model accuracy values are reported at the current stage because the
+machine-learning modules are still under development.
+
+% ---------------------------------------------------------
+\section{Analysis}
+% ---------------------------------------------------------
+
+The current implementation demonstrates the foundation required for an
+integrated smart-meter analytics platform.
+
+The project has progressed from data understanding and preparation toward
+the development of analytical and presentation components.
+
+An important design principle is explainability. Instead of presenting only
+a binary decision, the system is intended to present risk-oriented
+information together with contributing factors so that authorised users can
+perform further investigation.
+
+The final analysis will be completed after the anomaly-detection,
+forecasting, backend, and integration stages have been implemented and
+validated.
+
+% =========================================================
+% CHAPTER 4
+% =========================================================
+
+\chapter{Conclusion}
+
+% ---------------------------------------------------------
+\section{Summary of Work}
+% ---------------------------------------------------------
+
+MeterIQ is being developed as an explainable smart-meter analytics platform
+for supporting distribution-grid monitoring and analysis.
+
+The project combines smart-meter data preparation, exploratory data
+analysis, feature engineering, anomaly and electricity-theft-risk analysis,
+short-term load forecasting, and an interactive dashboard within a unified
+software system.
+
+At the current stage, the major software-engineering diagrams, data
+exploration, preprocessing, feature engineering, prepared dataset
+validation, project planning, and initial dashboard implementation have been
+completed.
+
+% ---------------------------------------------------------
+\section{Key Findings}
+% ---------------------------------------------------------
+
+The current development has established the following:
+
+\begin{itemize}
+
+    \item \textbf{Unified Analytics:}
+    Different smart-meter analytical functions can be organised within a
+    single software platform.
+
+    \item \textbf{Explainability:}
+    Anomaly analysis can be presented using risk-oriented information and
+    contributing factors rather than only a binary decision.
+
+    \item \textbf{Human-in-the-Loop:}
+    Electricity-theft-risk signals are intended to support further
+    investigation by authorised personnel rather than automatically
+    determining theft.
+
+    \item \textbf{Temporal Analysis:}
+    Smart-meter data contains temporal patterns that are useful for both
+    anomaly analysis and forecasting.
+
+    \item \textbf{Dashboard Integration:}
+    An interactive dashboard provides a common interface through which
+    different analytical outputs can eventually be accessed.
+
+\end{itemize}
+
+% ---------------------------------------------------------
+\section{Future Work and Recommendations}
+% ---------------------------------------------------------
+
+The planned future work includes:
+
+\begin{enumerate}
+
+    \item Complete implementation and validation of the anomaly-detection
+    module.
+
+    \item Develop and evaluate short-term load forecasting models.
+
+    \item Compare forecasting models against the same-hour-last-week
+    baseline.
+
+    \item Integrate the machine-learning modules with the dashboard.
+
+    \item Implement backend services.
+
+    \item Implement persistent database storage.
+
+    \item Connect processed smart-meter datasets to the complete system.
+
+    \item Complete end-to-end system testing.
+
+    \item Improve explanation and investigation workflows.
+
+    \item Evaluate the final system using appropriate performance metrics.
+
+    \item Further improve the analytical modules based on evaluation results.
+
+\end{enumerate}
+
+% ---------------------------------------------------------
+\section{Final Remarks}
+% ---------------------------------------------------------
+
+MeterIQ aims to provide an integrated and explainable approach to smart-meter
+analytics.
+
+The system is designed to assist authorised operators by highlighting
+unusual patterns, providing forecasting information, and presenting
+analytical evidence through an interactive interface.
+
+The current mid-semester implementation establishes the foundation for the
+remaining machine-learning, backend, database, integration, and testing
+stages.
+
+% =========================================================
+% REFERENCES
+% =========================================================
+
+\clearpage
+
+\printbibliography[title={References}]
+
+% =========================================================
+% END DOCUMENT
+% =========================================================
+
+\end{document}

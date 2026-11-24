@@ -1,0 +1,708 @@
+\documentclass[12pt,a4paper]{report}
+
+% =========================================================
+% PACKAGES
+% =========================================================
+
+\usepackage[a4paper,margin=0.85in]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{setspace}
+\usepackage{needspace}
+\usepackage{pdflscape}
+
+% =========================================================
+% GENERAL FORMATTING
+% =========================================================
+
+\setstretch{1.08}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+
+% =========================================================
+% HYPERLINKS
+% =========================================================
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue,
+    citecolor=black
+}
+
+% =========================================================
+% CHAPTER FORMAT
+% =========================================================
+
+\titleformat{\chapter}
+  {\normalfont\Large\bfseries}
+  {\thechapter}
+  {0.8em}
+  {}
+
+\titlespacing*{\chapter}
+  {0pt}
+  {0pt}
+  {10pt}
+
+% =========================================================
+% SECTION FORMAT
+% =========================================================
+
+\titleformat{\section}
+  {\normalfont\large\bfseries}
+  {\thesection}
+  {0.7em}
+  {}
+
+\titlespacing*{\section}
+  {0pt}
+  {7pt}
+  {3pt}
+
+% =========================================================
+% SUBSECTION FORMAT
+% =========================================================
+
+\titleformat{\subsection}
+  {\normalfont\normalsize\bfseries}
+  {\thesubsection}
+  {0.7em}
+  {}
+
+\titlespacing*{\subsection}
+  {0pt}
+  {5pt}
+  {2pt}
+
+% =========================================================
+% FIGURE CAPTIONS
+% =========================================================
+
+\captionsetup{
+    font=small,
+    labelfont=bf,
+    justification=centering,
+    skip=3pt
+}
+
+% =========================================================
+% LIST FORMATTING
+% =========================================================
+
+\setlist[itemize]{
+    leftmargin=1.4em,
+    itemsep=1pt,
+    topsep=2pt
+}
+
+\setlist[enumerate]{
+    leftmargin=1.4em,
+    itemsep=1pt,
+    topsep=2pt
+}
+
+% =========================================================
+% HEADER / FOOTER
+% =========================================================
+
+\pagestyle{fancy}
+
+\setlength{\headheight}{15pt}
+
+\fancyhf{}
+
+\fancyhead[L]{MeterIQ}
+\fancyhead[R]{Prototype Report}
+
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0.4pt}
+
+% =========================================================
+% DOCUMENT
+% =========================================================
+
+\begin{document}
+
+
+% =========================================================
+% TITLE PAGE
+% =========================================================
+
+\begin{titlepage}
+\hypersetup{pageanchor=false}
+
+\centering
+
+\vspace*{1.5cm}
+
+{\Large\bfseries UCS503 -- SOFTWARE ENGINEERING\par}
+
+\vspace{1cm}
+
+{\Huge\bfseries MeterIQ\par}
+
+\vspace{0.3cm}
+
+{\Large Explainable Smart Meter Analytics Platform\par}
+
+\vspace{1.2cm}
+
+{\large\bfseries Prototype Report\par}
+
+\vspace{1.2cm}
+
+{\large
+\textbf{Yashit Arora}\\
+Roll No.: 1024160006
+\par}
+
+\vspace{0.5cm}
+
+{\large
+\textbf{Aarushi Gahlawat}\\
+Roll No.: 1024160008
+\par}
+
+\vfill
+
+{\large
+Department of Computer Science and Engineering\\
+Thapar Institute of Engineering and Technology\\
+September 2026
+\par}
+
+\end{titlepage}
+\hypersetup{pageanchor=true}
+
+
+% =========================================================
+% CHAPTER 1 -- INTRODUCTION
+% =========================================================
+
+\chapter{Introduction}
+
+% ---------------------------------------------------------
+% BACKGROUND
+% ---------------------------------------------------------
+
+\section{Background}
+
+Electricity distribution networks generate large amounts of smart meter data
+at regular time intervals. Analysing this data can help identify unusual
+consumption behaviour and support better understanding of electricity usage.
+
+MeterIQ is an explainable smart meter analytics platform designed to analyse
+smart meter consumption data. The system focuses on two major analytical
+functionalities: anomaly or electricity-theft-risk detection and short-term
+load forecasting.
+
+The platform is being developed using smart meter data from Mathura and
+Bareilly. Instead of directly declaring a meter as a theft case, MeterIQ
+identifies unusual patterns and provides information that can support further
+human investigation.
+
+% ---------------------------------------------------------
+% PROBLEM STATEMENT
+% ---------------------------------------------------------
+
+\section{Problem Statement}
+
+Traditional analysis of smart meter data can make it difficult to identify
+unusual consumption patterns efficiently. Large datasets also make manual
+inspection time-consuming.
+
+The proposed system aims to provide an integrated platform where smart meter
+data can be processed, analysed and visualised through a dashboard. The
+system also aims to provide explainable information along with detected
+anomalies so that the results can be understood by users.
+
+% ---------------------------------------------------------
+% OBJECTIVES
+% ---------------------------------------------------------
+
+\section{Objectives}
+
+The main objectives of MeterIQ are:
+
+\begin{itemize}
+    \item Analyse smart meter consumption data.
+    \item Detect unusual consumption patterns and generate anomaly or
+          theft-risk indicators.
+    \item Forecast short-term electricity load.
+    \item Provide explanations for detected unusual behaviour.
+    \item Present analytical results through an interactive dashboard.
+    \item Support human investigation rather than automatically accusing a
+          consumer of electricity theft.
+\end{itemize}
+
+
+% =========================================================
+% CHAPTER 2 -- SYSTEM DESIGN
+% =========================================================
+
+\chapter{System Design}
+
+% ---------------------------------------------------------
+% SYSTEM OVERVIEW
+% ---------------------------------------------------------
+
+\section{System Overview}
+
+The MeterIQ system follows a data-driven workflow. Smart meter data is first
+prepared and transformed into suitable analytical features. The prepared
+data is then used by the anomaly detection and forecasting components. The
+resulting information is presented through the dashboard.
+
+The overall workflow is:
+
+\begin{center}
+\textbf{Smart Meter Data}
+$\rightarrow$
+\textbf{Data Preparation}
+$\rightarrow$
+\textbf{Feature Engineering}
+$\rightarrow$
+\textbf{Analytics}
+$\rightarrow$
+\textbf{Dashboard}
+\end{center}
+
+The analytics layer consists of two primary modules:
+
+\begin{enumerate}
+    \item Anomaly / electricity-theft-risk detection.
+    \item Short-term load forecasting.
+\end{enumerate}
+
+% ---------------------------------------------------------
+% USE CASE DIAGRAM
+% ---------------------------------------------------------
+
+\begin{landscape}
+\thispagestyle{empty}
+
+\section{Use Case Diagram}
+
+The Use Case Diagram describes the major interactions between the
+Smart-Meter Data Source, User and the MeterIQ system.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1.10\textwidth,
+        height=0.74\textheight,
+        trim=35pt 35pt 35pt 25pt,
+        clip,
+        keepaspectratio
+    ]{Use Case Diagram.draw.io (3).pdf}
+    \caption{MeterIQ Use Case Diagram}
+    \label{fig:usecase}
+\end{figure}
+
+\vfill
+\begin{center}
+\thepage
+\end{center}
+
+\end{landscape}
+
+
+% =========================================================
+% CHAPTER 3 -- SYSTEM MODELLING
+% =========================================================
+
+\begin{landscape}
+\chapter{System Modelling}
+\thispagestyle{empty}
+
+This chapter presents the system models that define how MeterIQ components,
+users and data stores interact. The diagrams progress from a high-level data
+flow to detailed processing, the data model and the end-to-end activity
+workflow.
+
+% ---------------------------------------------------------
+% DFD LEVEL 0
+% ---------------------------------------------------------
+
+\section{Data Flow Diagram -- Level 0}
+
+The Level 0 Data Flow Diagram provides a high-level representation of the
+MeterIQ system and shows the interaction between the system and its external
+entities.
+
+\vfill
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1.30\textwidth,
+        height=0.74\textheight,
+        trim=22pt 215pt 22pt 215pt,
+        clip,
+        keepaspectratio
+    ]{DataFlowDiagram_level0.pdf}
+    \caption{MeterIQ DFD Level 0}
+    \label{fig:dfd0}
+\end{figure}
+
+\vfill
+\begin{center}
+\thepage
+\end{center}
+\clearpage
+\thispagestyle{empty}
+
+% ---------------------------------------------------------
+% DFD LEVEL 1
+% ---------------------------------------------------------
+
+\section{Data Flow Diagram -- Level 1}
+
+The Level 1 DFD provides a detailed representation of the major processes
+involved in smart meter data analysis.
+
+\vfill
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1.30\textwidth,
+        height=0.74\textheight,
+        trim=18pt 120pt 18pt 120pt,
+        clip,
+        keepaspectratio
+    ]{DataFlowDiagramLevel1.drawio (1).pdf}
+    \caption{MeterIQ DFD Level 1}
+    \label{fig:dfd1}
+\end{figure}
+
+\vfill
+\begin{center}
+\thepage
+\end{center}
+\clearpage
+\thispagestyle{empty}
+
+% ---------------------------------------------------------
+% DFD LEVEL 2
+% ---------------------------------------------------------
+
+\section{Data Flow Diagram -- Level 2}
+
+The Level 2 DFD further decomposes the anomaly and theft-risk detection
+process and represents the flow of information between its components.
+
+\vfill
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1.30\textwidth,
+        height=0.74\textheight,
+        trim=20pt 195pt 20pt 195pt,
+        clip,
+        keepaspectratio
+    ]{DataFlowDiagLevel2.drawio (1).pdf}
+    \caption{MeterIQ DFD Level 2}
+    \label{fig:dfd2}
+\end{figure}
+
+\vfill
+\begin{center}
+\thepage
+\end{center}
+\clearpage
+\thispagestyle{empty}
+
+% ---------------------------------------------------------
+% ER DIAGRAM
+% ---------------------------------------------------------
+
+\section{Entity Relationship Diagram}
+
+The Entity Relationship Diagram represents the major data entities and their
+relationships used in the MeterIQ system.
+
+\vfill
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=1.10\textwidth,
+        height=0.74\textheight,
+        trim=20pt 20pt 20pt 20pt,
+        clip,
+        keepaspectratio
+    ]{ER_Diagram_MeterIQ.pdf}
+    \caption{MeterIQ Entity Relationship Diagram}
+    \label{fig:erd}
+\end{figure}
+
+\vfill
+\begin{center}
+\thepage
+\end{center}
+
+\end{landscape}
+
+% ---------------------------------------------------------
+% ACTIVITY DIAGRAM
+% ---------------------------------------------------------
+
+\needspace{0.90\textheight}
+
+\section{Activity Diagram}
+
+The Activity Diagram represents the sequence of activities performed during
+the MeterIQ analysis workflow, from receiving meter data to generating
+analytical results.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=0.90\textwidth,
+        height=0.78\textheight,
+        trim=20pt 110pt 20pt 110pt,
+        clip,
+        keepaspectratio
+    ]{Activity_Diagram_MeterIQ.pdf}
+    \caption{MeterIQ Activity Diagram}
+    \label{fig:activity}
+\end{figure}
+
+
+% =========================================================
+% CHAPTER 4 -- PROTOTYPE IMPLEMENTATION
+% =========================================================
+
+\chapter{Prototype Implementation}
+
+% ---------------------------------------------------------
+% DATA PREPARATION
+% ---------------------------------------------------------
+
+\section{Data Preparation}
+
+The smart meter data is prepared before performing analytical operations.
+The preprocessing stage includes handling the available meter readings,
+organising the time information and preparing the data for further analysis.
+
+Feature engineering is then performed to generate useful temporal and
+consumption-related features. These features are used by the analytical
+modules.
+
+% ---------------------------------------------------------
+% ANOMALY DETECTION
+% ---------------------------------------------------------
+
+\section{Anomaly and Risk Detection}
+
+The anomaly detection component is intended to identify unusual patterns in
+smart meter consumption data.
+
+The system does not directly classify a consumer as committing electricity
+theft. Instead, it produces an anomaly or risk indicator based on unusual
+behaviour. The result can then be examined by an authorised human user.
+
+The explainability component is intended to provide information about why a
+reading or pattern has been identified as unusual.
+
+% ---------------------------------------------------------
+% FORECASTING
+% ---------------------------------------------------------
+
+\section{Short-Term Load Forecasting}
+
+The forecasting component is designed to estimate electricity load for a
+short-term horizon. A same-hour-last-week baseline is used as an initial
+reference for evaluating forecasting performance.
+
+The forecasting workflow uses chronological data separation so that future
+information is not used during the training process.
+
+% ---------------------------------------------------------
+% DASHBOARD
+% ---------------------------------------------------------
+
+\section{Dashboard}
+
+A web-based dashboard is being developed to provide a user-friendly
+interface for MeterIQ. The dashboard is intended to allow users to search and
+inspect meters, view consumption patterns, examine anomaly or risk
+information and view load forecasts.
+
+The dashboard provides a single interface for presenting the results of the
+analytical pipeline.
+
+
+% =========================================================
+% FRONTEND PROTOTYPE
+% =========================================================
+
+\needspace{0.25\textheight}
+
+\section{Frontend Prototype}
+
+The MeterIQ frontend provides an interactive interface for smart meter
+monitoring, analysis and decision support. The prototype includes a login
+interface, an operations dashboard and a short-term load forecasting
+interface.
+
+% ---------------------------------------------------------
+% LOGIN INTERFACE
+% ---------------------------------------------------------
+
+\needspace{0.45\textheight}
+
+\subsection{Login Interface}
+
+The login interface provides access to the MeterIQ platform and supports
+different prototype roles, including Supervisor and Data Analyst.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=0.62\textwidth,
+        trim=420pt 285pt 556pt 333pt,
+        clip,
+        height=0.34\textheight,
+        keepaspectratio
+    ]{login.png}
+    \caption{MeterIQ Login Interface}
+    \label{fig:login}
+\end{figure}
+
+% ---------------------------------------------------------
+% OPERATIONS DASHBOARD
+% ---------------------------------------------------------
+
+\needspace{0.52\textheight}
+
+\subsection{Operations Dashboard}
+
+The Operations Dashboard provides an overview of smart meter activity. It
+presents total smart meters, total consumption, detected anomalies,
+high-risk meters and active regions. It also provides consumption trends and
+anomaly-risk distribution for operational decision support.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=0.86\textwidth,
+        height=0.39\textheight,
+        keepaspectratio
+    ]{dashboard.png}
+    \caption{MeterIQ Operations Dashboard}
+    \label{fig:dashboard}
+\end{figure}
+
+% ---------------------------------------------------------
+% FORECASTING INTERFACE
+% ---------------------------------------------------------
+
+\needspace{0.52\textheight}
+
+\subsection{Short-Term Load Forecasting Interface}
+
+The forecasting interface allows a smart meter and machine learning model to
+be selected along with the forecast horizon. It presents forecasting
+evaluation metrics and the predicted load profile for the selected meter.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[
+        width=0.86\textwidth,
+        height=0.39\textheight,
+        keepaspectratio
+    ]{forecasting.png}
+    \caption{MeterIQ Short-Term Load Forecasting Interface}
+    \label{fig:forecasting}
+\end{figure}
+
+
+% =========================================================
+% CHAPTER 5 -- CURRENT PROGRESS AND FUTURE WORK
+% =========================================================
+
+\chapter{Current Progress and Future Work}
+
+The current prototype development includes the following completed or
+developed components:
+
+\begin{itemize}
+    \item Problem definition and system requirements.
+    \item Use Case Diagram.
+    \item DFD Level 0, Level 1 and Level 2.
+    \item Entity Relationship Diagram.
+    \item Activity Diagram.
+    \item Exploratory Data Analysis.
+    \item Data preprocessing.
+    \item Feature engineering.
+    \item Initial dashboard development.
+    \item System workflow and prototype design.
+\end{itemize}
+
+% ---------------------------------------------------------
+% PROTOTYPE STATUS
+% ---------------------------------------------------------
+
+\section{Prototype Status}
+
+The prototype currently demonstrates the planned system structure and
+dashboard workflow. The final analytical results and model evaluation will
+be added after completion and integration of the machine learning modules.
+
+The current report represents the mid-semester prototype stage of MeterIQ
+rather than the final project evaluation.
+
+
+% =========================================================
+% FUTURE WORK
+% =========================================================
+
+\section{Future Work}
+
+The planned future work for MeterIQ includes:
+
+\begin{itemize}
+    \item Complete the anomaly and electricity-theft-risk detection module.
+    \item Complete and evaluate the short-term load forecasting module.
+    \item Integrate the analytical models with the dashboard.
+    \item Add explainable anomaly information to the user interface.
+    \item Perform complete system testing.
+    \item Evaluate the system using appropriate performance metrics.
+    \item Improve the dashboard based on testing and user feedback.
+\end{itemize}
+
+
+% =========================================================
+% BIBLIOGRAPHY
+% =========================================================
+
+\begin{thebibliography}{9}
+
+\bibitem{smartmeter}
+Smart meter consumption data used for the MeterIQ project,
+including data from Mathura and Bareilly.
+
+\bibitem{softwareengineering}
+UCS503 Software Engineering course material,
+Thapar Institute of Engineering and Technology.
+
+\bibitem{github}
+\raggedright
+MeterIQ project repository:
+\url{https://github.com/aarushi2006/ucs503p-202627odd-MeterIQ}
+
+\end{thebibliography}
+
+
+% =========================================================
+% END DOCUMENT
+% =========================================================
+
+\end{document}
