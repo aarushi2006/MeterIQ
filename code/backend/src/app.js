@@ -24,7 +24,7 @@ if (!process.env.JWT_SECRET) {
 }
 
 const allowedOrigins = (
-  process.env.FRONTEND_URL || "http://localhost:5173"
+  `${process.env.FRONTEND_URL || "http://localhost:5173"},https://meter-iq.vercel.app`
 )
   .split(",")
   .map((origin) => origin.trim())

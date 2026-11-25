@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "../services/api";
 
 const pageMeta = {
@@ -16,20 +16,22 @@ const pageMeta = {
   about: { title: "About MeterIQ", desc: "Smart Meter Decision Support System" },
 };
 
-const HEALTH_BASE = API_BASE_URL.replace(/\/api$/, "");
+const HEALTH_ENDPOINT = `${API_BASE_URL}/health`;
 
 export default function Header({ page, user, role, onToggleMobileMenu }) {
   const [system, setSystem] = useState({ state: "checking", label: "Checking API…" });
+  const consecutiveFailures = useRef(0);
 
   useEffect(() => {
     let active = true;
 
     async function check() {
       try {
-        const response = await fetch(`${HEALTH_BASE}/health`);
+        const response = await fetch(HEALTH_ENDPOINT);
         const data = await response.json().catch(() => ({}));
         if (!active) return;
         if (response.ok && data.status === "healthy") {
+          consecutiveFailures.current = 0;
           setSystem({ state: "online", label: "All services online" });
         } else {
           const services = data.services || {};
@@ -42,7 +44,10 @@ export default function Header({ page, user, role, onToggleMobileMenu }) {
           });
         }
       } catch {
-        if (active) setSystem({ state: "offline", label: "API unreachable" });
+        consecutiveFailures.current += 1;
+        if (active) setSystem(consecutiveFailures.current >= 3
+          ? { state: "offline", label: "Connection temporarily unavailable" }
+          : { state: "checking", label: "Reconnecting…" });
       }
     }
 

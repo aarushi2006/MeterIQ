@@ -26,6 +26,8 @@ const clients = [ML_BASE_URL, ML_FALLBACK_URL]
   .filter((url, index, urls) => url && urls.indexOf(url) === index)
   .map((baseURL) => ({ baseURL, client: createClient(baseURL) }));
 
+const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
 function normalizeError(error, endpoint) {
   if (error.response) {
     const data = error.response.data;
@@ -66,15 +68,18 @@ const mlService = {
   async fetchFromML(endpoint, params = {}, options = {}) {
     let lastError;
     for (const { client } of clients) {
-      try {
-        const response = await client.get(endpoint, {
-          params,
-          timeout: options.timeout || ML_TIMEOUT_MS,
-        });
-        return response.data;
-      } catch (error) {
-        lastError = error;
-        if (error.response && error.response.status < 500) break;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          const response = await client.get(endpoint, {
+            params,
+            timeout: options.timeout || ML_TIMEOUT_MS,
+          });
+          return response.data;
+        } catch (error) {
+          lastError = error;
+          if (error.response && error.response.status < 500) break;
+          if (attempt === 0) await wait(400);
+        }
       }
     }
     throw normalizeError(lastError, endpoint);
@@ -83,14 +88,17 @@ const mlService = {
   async postToML(endpoint, data = {}, options = {}) {
     let lastError;
     for (const { client } of clients) {
-      try {
-        const response = await client.post(endpoint, data, {
-          timeout: options.timeout || ML_TIMEOUT_MS,
-        });
-        return response.data;
-      } catch (error) {
-        lastError = error;
-        if (error.response && error.response.status < 500) break;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          const response = await client.post(endpoint, data, {
+            timeout: options.timeout || ML_TIMEOUT_MS,
+          });
+          return response.data;
+        } catch (error) {
+          lastError = error;
+          if (error.response && error.response.status < 500) break;
+          if (attempt === 0) await wait(400);
+        }
       }
     }
     throw normalizeError(lastError, endpoint);
