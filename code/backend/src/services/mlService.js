@@ -2,6 +2,7 @@ const axios = require("axios");
 require("dotenv").config();
 
 const ML_BASE_URL = (process.env.ML_SERVICE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+const ML_FALLBACK_URL = (process.env.ML_SERVICE_FALLBACK_URL || "https://meteriq-ml.onrender.com").replace(/\/$/, "");
 const ML_TIMEOUT_MS = Number(process.env.ML_SERVICE_TIMEOUT_MS || 60000);
 
 class MLServiceError extends Error {
@@ -13,11 +14,17 @@ class MLServiceError extends Error {
   }
 }
 
-const client = axios.create({
-  baseURL: ML_BASE_URL,
-  timeout: ML_TIMEOUT_MS,
-  headers: { Accept: "application/json" },
-});
+function createClient(baseURL) {
+  return axios.create({
+    baseURL,
+    timeout: ML_TIMEOUT_MS,
+    headers: { Accept: "application/json" },
+  });
+}
+
+const clients = [ML_BASE_URL, ML_FALLBACK_URL]
+  .filter((url, index, urls) => url && urls.indexOf(url) === index)
+  .map((baseURL) => ({ baseURL, client: createClient(baseURL) }));
 
 function normalizeError(error, endpoint) {
   if (error.response) {
@@ -57,26 +64,36 @@ const mlService = {
   ML_BASE_URL,
 
   async fetchFromML(endpoint, params = {}, options = {}) {
-    try {
-      const response = await client.get(endpoint, {
-        params,
-        timeout: options.timeout || ML_TIMEOUT_MS,
-      });
-      return response.data;
-    } catch (error) {
-      throw normalizeError(error, endpoint);
+    let lastError;
+    for (const { client } of clients) {
+      try {
+        const response = await client.get(endpoint, {
+          params,
+          timeout: options.timeout || ML_TIMEOUT_MS,
+        });
+        return response.data;
+      } catch (error) {
+        lastError = error;
+        if (error.response && error.response.status < 500) break;
+      }
     }
+    throw normalizeError(lastError, endpoint);
   },
 
   async postToML(endpoint, data = {}, options = {}) {
-    try {
-      const response = await client.post(endpoint, data, {
-        timeout: options.timeout || ML_TIMEOUT_MS,
-      });
-      return response.data;
-    } catch (error) {
-      throw normalizeError(error, endpoint);
+    let lastError;
+    for (const { client } of clients) {
+      try {
+        const response = await client.post(endpoint, data, {
+          timeout: options.timeout || ML_TIMEOUT_MS,
+        });
+        return response.data;
+      } catch (error) {
+        lastError = error;
+        if (error.response && error.response.status < 500) break;
+      }
     }
+    throw normalizeError(lastError, endpoint);
   },
 
   async checkHealth() {
