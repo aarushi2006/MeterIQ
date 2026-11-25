@@ -35,7 +35,7 @@ function formatKwh(value) {
   return `${formatNumber(number, digits)} kWh`;
 }
 
-export default function Dashboard({ onSelectMeter, onNavigate }) {
+export default function Dashboard({ onSelectMeter, onNavigate, currentUser }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -201,11 +201,12 @@ export default function Dashboard({ onSelectMeter, onNavigate }) {
             MeterIQ / Operations Dashboard
           </div>
 
-          <h2>Operations Dashboard</h2>
+          <h2>{currentUser?.role === "analyst" ? "My Investigation Dashboard" : "Operations Dashboard"}</h2>
 
           <p className="dashboard-subtitle">
-            Aggregated smart meter analytics from the MeterIQ API,
-            MongoDB case store, and ML artifacts. Historical dataset.
+            {currentUser?.role === "analyst"
+              ? "Your assigned investigation workload alongside current meter analytics."
+              : "Operational meter analytics and current investigation workload."}
           </p>
         </div>
 

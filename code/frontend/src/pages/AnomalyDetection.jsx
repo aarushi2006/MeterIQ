@@ -205,16 +205,13 @@ export default function AnomalyDetection({
       {!recordsAvailable && records && (
         <InlineNotice tone="warning" title="Observation-level records are unavailable">
           {records.message}
-          {records.artifact_path && (
-            <p className="notice-path">Expected artifact: {records.artifact_path}</p>
-          )}
           Meter-level aggregates below still come from the generated anomaly summary.
         </InlineNotice>
       )}
 
       {dispatchedCase && (
         <InlineNotice tone="success" title={`Case ${dispatchedCase.id} created`}>
-          The case for meter {dispatchedCase.meter_id} is stored in MongoDB and visible on
+          The case for meter {dispatchedCase.meter_id} is now visible on
           the Investigations page.
         </InlineNotice>
       )}

@@ -169,14 +169,15 @@ export default function ForecastingPage() {
         </div>
       </section>
 
+      <InlineNotice tone="info" title="Forecast interpretation">
+        Forecasts are model-generated estimates based on available historical data and assumptions. They are not actual measured consumption, confirmed anomalies or proof of electricity theft. Predictions may be inaccurate and should be reviewed alongside historical records and field investigation evidence.
+      </InlineNotice>
+
       {!meta?.available && (
         <InlineNotice tone="warning" title="Forecast artifact not generated">
           {meta?.message ||
             "The forecast predictions artifact is missing, so no forecasts can be displayed."}
-          {meta?.artifact_path && (
-            <p className="notice-path">Expected artifact: {meta.artifact_path}</p>
-          )}
-          Generate it with the load-forecasting pipeline before using this module.
+          Forecast results will appear once model output is available for review.
         </InlineNotice>
       )}
 

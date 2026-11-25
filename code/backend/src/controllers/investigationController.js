@@ -56,21 +56,43 @@ function buildCounts(rows) {
 }
 
 exports.getInvestigations = asyncHandler(async (req, res) => {
-  const { status = "all", region = "all", search = "" } = req.query;
+  const {
+    status = "all", region = "all", priority = "all", assignedUser = "all",
+    dueBefore, dueAfter, search = "", sort = "updated_desc", page = 1, pageSize = 25,
+  } = req.query;
   const filters = [];
   if (!isManager(req)) filters.push(analystAccess(req));
   if (status && status !== "all") filters.push({ status });
   if (region && region !== "all") filters.push({ region });
+  if (priority && priority !== "all") filters.push({ priority });
+  if (isManager(req) && assignedUser && assignedUser !== "all") {
+    filters.push(assignedUser === "unassigned" ? { assignedUser: { $in: [null, undefined] } } : { assignedUser });
+  }
+  if (dueAfter || dueBefore) {
+    const dueDate = {};
+    if (dueAfter) dueDate.$gte = new Date(dueAfter);
+    if (dueBefore) dueDate.$lte = new Date(`${dueBefore}T23:59:59.999Z`);
+    if (!Object.values(dueDate).some((value) => Number.isNaN(value.getTime()))) filters.push({ dueDate });
+  }
   if (search) filters.push({ $or: [
     { id: { $regex: search, $options: "i" } }, { meter_id: { $regex: search, $options: "i" } },
     { reason: { $regex: search, $options: "i" } }, { assignedTo: { $regex: search, $options: "i" } },
   ] });
   const query = filters.length ? { $and: filters } : {};
+  const safePage = Math.max(1, Number.parseInt(page, 10) || 1);
+  const safePageSize = Math.min(100, Math.max(1, Number.parseInt(pageSize, 10) || 25));
+  const sorts = {
+    updated_desc: { updatedAt: -1, createdAt: -1 },
+    due_asc: { dueDate: 1, updatedAt: -1 },
+    priority_desc: { priority: -1, updatedAt: -1 },
+    created_desc: { createdAt: -1 },
+  };
   const [investigations, counts] = await Promise.all([
-    Investigation.find(query).sort({ updatedAt: -1, createdAt: -1 }).lean(),
+    Investigation.find(query).sort(sorts[sort] || sorts.updated_desc).skip((safePage - 1) * safePageSize).limit(safePageSize).lean(),
     Investigation.aggregate([{ $match: query }, { $group: { _id: "$status", count: { $sum: 1 } } }]),
   ]);
-  res.json({ investigations, total: investigations.length, statusCounts: buildCounts(counts) });
+  const total = counts.reduce((sum, row) => sum + row.count, 0);
+  res.json({ investigations, total, page: safePage, pageSize: safePageSize, totalPages: Math.max(1, Math.ceil(total / safePageSize)), statusCounts: buildCounts(counts) });
 });
 
 exports.getInvestigation = asyncHandler(async (req, res) => {

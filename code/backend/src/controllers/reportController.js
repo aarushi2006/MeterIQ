@@ -8,6 +8,17 @@ const {
   sortMeters,
 } = require("./meterController");
 
+function investigationAccess(req) {
+  if (["supervisor", "admin"].includes(req.user?.role)) return {};
+  return {
+    $or: [
+      { assignedUser: req.user?.id },
+      { assignedUser: { $exists: false }, assignedTo: req.user?.fullName },
+      { assignedUser: { $exists: false }, assignedTo: req.user?.email },
+    ],
+  };
+}
+
 async function getFilteredMeters(query) {
   const { meters } = await fetchMeterCatalog();
   return sortMeters(applyFilters(meters, query), query.sort);
@@ -188,18 +199,21 @@ exports.exportRegional = asyncHandler(async (req, res) => {
 
 exports.exportInvestigations = asyncHandler(async (req, res) => {
   const { status = "all", region = "all", search = "" } = req.query;
+  const filters = [investigationAccess(req)];
   const query = {};
-  if (status !== "all") query.status = status;
-  if (region !== "all") query.region = region;
+  if (status !== "all") filters.push({ status });
+  if (region !== "all") filters.push({ region });
   if (search) {
-    query.$or = [
+    filters.push({ $or: [
       { id: { $regex: search, $options: "i" } },
       { meter_id: { $regex: search, $options: "i" } },
       { reason: { $regex: search, $options: "i" } },
-    ];
+    ] });
   }
 
-  const investigations = await Investigation.find(query)
+  const scopedQuery = filters.length === 1 && Object.keys(filters[0]).length === 0 ? query : { $and: filters };
+
+  const investigations = await Investigation.find(scopedQuery)
     .sort({ createdAt: -1 })
     .lean();
 
@@ -214,6 +228,8 @@ exports.exportInvestigations = asyncHandler(async (req, res) => {
       { key: "riskScore", label: "Risk_Score" },
       { key: "reason", label: "Reason" },
       { key: "assignedTo", label: "Assigned_To" },
+      { key: "dueDate", label: "Due_Date" },
+      { key: "assignmentInstructions", label: "Assignment_Instructions" },
       { key: "createdBy", label: "Created_By" },
       { key: "createdAt", label: "Created_At" },
       { key: "updatedAt", label: "Updated_At" },
