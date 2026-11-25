@@ -402,8 +402,8 @@ export default function Dashboard({ onSelectMeter, onNavigate, currentUser }) {
 
         <article className="card dashboard-panel dashboard-region-panel">
           <CardHeader
-            title="Regional Risk"
-            text="Regional meter counts and anomaly indicators"
+            title="Regional Operations Map"
+            text="Mathura and Bareilly meter coverage with live risk indicators"
           />
 
           {data.regional?.regions ? (
