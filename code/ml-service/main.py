@@ -239,12 +239,12 @@ def read_json(path: str) -> Optional[Dict]:
 
 
 def forecast_model_info() -> Optional[Dict]:
-    report = read_json(api_data.FORECAST_REPORT_PATH)
+    report = read_json(api_data.FORWARD_FORECAST_REPORT_PATH) or read_json(api_data.FORECAST_REPORT_PATH)
     if not report:
         return None
     return {
         "generated_at": report.get("timestamp"),
-        "model_summary": report.get("model_summary"),
+        "model_summary": report.get("model_summary") or {"validation_mae": report.get("validation_mae")},
         "baseline_summary": report.get("baseline_summary"),
         "model_name": report.get(
             "model_name",
@@ -1050,12 +1050,34 @@ def get_data_quality():
 def get_forecast_meta():
     summary = api_data.load_anomaly_summary()
     meters = sorted(summary["meter_id"].astype(str).tolist()) if not summary.empty else []
-    available = os.path.exists(api_data.FORECAST_PREDICTIONS_PATH)
+    forward_available = os.path.exists(api_data.FORWARD_FORECASTS_PATH)
+    available = forward_available or os.path.exists(api_data.FORECAST_PREDICTIONS_PATH)
     model_info = forecast_model_info()
 
     message = None
     horizons: List[int] = [1, 6, 12, 24]
-    if available:
+    if forward_available:
+        try:
+            frame = pd.read_parquet(api_data.FORWARD_FORECASTS_PATH, columns=["meter_id", "timestamp"])
+            meters = sorted(frame["meter_id"].astype(str).unique().tolist())
+            horizons = [1, 6, 12, 24, 48, 72, 168]
+            meter_coverage = {
+                str(meter_id): {
+                    "start": api_data.to_iso(group["timestamp"].min()),
+                    "end": api_data.to_iso(group["timestamp"].max()),
+                }
+                for meter_id, group in frame.groupby("meter_id")
+            }
+            coverage = {
+                "start": api_data.to_iso(pd.to_datetime(frame["timestamp"]).min()),
+                "end": api_data.to_iso(pd.to_datetime(frame["timestamp"]).max()),
+            }
+        except Exception as error:
+            logger.exception("Unable to inspect forward forecast artifact")
+            available = False
+            message = f"Forward forecast artifact could not be read: {error}"
+            coverage = None
+    elif available:
         try:
             import pyarrow.parquet as pq
 
@@ -1081,17 +1103,57 @@ def get_forecast_meta():
 
     return {
         "available": available,
+        "mode": "forward" if forward_available and available else "backtest",
         "meters": meters,
         "horizons": horizons,
         "model_info": model_info,
         "artifact_path": api_data.FORECAST_PREDICTIONS_PATH,
         "message": message,
+        "coverage": coverage if forward_available and available else None,
+        "meterCoverage": meter_coverage if forward_available and available else None,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
 @app.get("/meters/{meter_id}/forecast")
-def get_forecast(meter_id: str, horizon: int = 24):
+def get_forecast(meter_id: str, horizon: int = 24, start: Optional[str] = None):
+    if os.path.exists(api_data.FORWARD_FORECASTS_PATH):
+        try:
+            frame = pd.read_parquet(
+                api_data.FORWARD_FORECASTS_PATH,
+                filters=[("meter_id", "==", str(meter_id))],
+            )
+            if frame.empty:
+                raise HTTPException(status_code=404, detail=f"No forward forecast found for meter {meter_id}")
+            frame["timestamp"] = pd.to_datetime(frame["timestamp"], errors="coerce")
+            frame = frame.dropna(subset=["timestamp"]).sort_values("timestamp")
+            if start:
+                start_time = pd.to_datetime(start, errors="coerce")
+                if pd.isna(start_time):
+                    raise HTTPException(status_code=400, detail="start must be a valid ISO date-time")
+                frame = frame[frame["timestamp"] >= start_time]
+            horizon = max(1, min(int(horizon), 24 * 7))
+            frame = frame.head(horizon)
+            if frame.empty:
+                raise HTTPException(status_code=404, detail="No forecast points in the requested date-time window")
+            report = read_json(api_data.FORWARD_FORECAST_REPORT_PATH) or {}
+            points = [{
+                "timestamp": api_data.to_iso(row["timestamp"]), "actual": None,
+                "predicted": round(safe_float(row.get("predicted")), 4),
+                "baseline": round(safe_float(row.get("baseline")), 4),
+                "lower_bound": round(safe_float(row.get("lower_bound")), 4),
+                "upper_bound": round(safe_float(row.get("upper_bound")), 4),
+            } for _, row in frame.iterrows()]
+            return {"meter_id": str(meter_id), "horizon": horizon, "available": True,
+                    "mode": "forward", "points": points, "unit": "kWh per hour",
+                    "model_info": forecast_model_info(), "metrics": {"validation_mae": report.get("validation_mae")},
+                    "generated_at": report.get("timestamp"), "coverage": report.get("coverage")}
+        except HTTPException:
+            raise
+        except Exception as error:
+            logger.exception("Error fetching forward forecast for %s", meter_id)
+            raise HTTPException(status_code=500, detail=str(error))
+
     if not os.path.exists(api_data.FORECAST_PREDICTIONS_PATH):
         raise HTTPException(
             status_code=503,

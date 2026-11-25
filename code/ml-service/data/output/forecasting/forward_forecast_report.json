@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-11-25T20:09:47.761533+00:00",
+  "model_name": "HistGradientBoostingRegressor (hourly recursive forward forecast)",
+  "horizon_hours": 168,
+  "training_days_per_meter": 60,
+  "n_train_rows": 56971,
+  "validation_mae": 0.09611416428698302,
+  "feature_columns": [
+    "meter_code",
+    "hour_num",
+    "day_of_week",
+    "is_weekend",
+    "lag_1h",
+    "lag_24h",
+    "lag_168h",
+    "mean_24h",
+    "mean_168h",
+    "trend_24h"
+  ],
+  "coverage": {
+    "start": "2020-01-19T00:00:00",
+    "end": "2021-11-07T23:00:00"
+  },
+  "note": "Forecasts start after each meter's last recorded hour; they are not a substitute for live telemetry."
+}

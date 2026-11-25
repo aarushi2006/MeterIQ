@@ -64,6 +64,7 @@ export default function ForecastingPage() {
 
   const [meterId, setMeterId] = useState("");
   const [horizon, setHorizon] = useState(24);
+  const [start, setStart] = useState("");
 
   const [forecast, setForecast] = useState(null);
   const [forecastLoading, setForecastLoading] = useState(false);
@@ -106,7 +107,7 @@ export default function ForecastingPage() {
     setForecastError(null);
 
     forecastService
-      .getForecast(meterId, horizon)
+      .getForecast(meterId, horizon, start || undefined)
       .then((data) => {
         if (active) setForecast(data);
       })
@@ -123,7 +124,7 @@ export default function ForecastingPage() {
     return () => {
       active = false;
     };
-  }, [meta?.available, meterId, horizon, reloadKey]);
+  }, [meta?.available, meterId, horizon, start, reloadKey]);
 
   const chartData = useMemo(
     () =>
@@ -137,6 +138,7 @@ export default function ForecastingPage() {
   );
 
   const chartSummary = useMemo(() => computeForecastSummary(chartData), [chartData]);
+  const selectedCoverage = meta?.meterCoverage?.[meterId] || meta?.coverage;
   const modelInfo = meta?.model_info;
   const modelEntries = renderSummaryEntries(modelInfo?.model_summary);
   const baselineEntries = renderSummaryEntries(modelInfo?.baseline_summary);
@@ -163,8 +165,9 @@ export default function ForecastingPage() {
           <label>SHORT-TERM LOAD FORECASTING</label>
           <h1>Load Forecasting</h1>
           <p>
-            Backtested consumption predictions from the trained forecasting pipeline,
-            compared against an actual reading and a same-hour-last-week baseline.
+            {meta?.mode === "forward"
+              ? "Seven-day, hourly forward forecasts generated from each meter’s recent load pattern, calendar signals, and weekly seasonality."
+              : "Backtested consumption predictions from the trained forecasting pipeline, compared against an actual reading and a same-hour-last-week baseline."}
           </p>
         </div>
       </section>
@@ -197,6 +200,20 @@ export default function ForecastingPage() {
               </select>
             </div>
 
+            {meta.mode === "forward" && (
+              <div className="select-wrap">
+                <label htmlFor="forecast-start">Start date & time</label>
+                <input
+                  id="forecast-start"
+                  type="datetime-local"
+                  value={start}
+                  min={selectedCoverage?.start?.slice(0, 16)}
+                  max={selectedCoverage?.end?.slice(0, 16)}
+                  onChange={(event) => setStart(event.target.value)}
+                />
+              </div>
+            )}
+
             <div className="select-wrap">
               <label htmlFor="forecast-horizon">Horizon</label>
               <select
@@ -226,6 +243,9 @@ export default function ForecastingPage() {
             <span>
               Metadata generated <strong>{formatDateTime(modelInfo?.generated_at || meta.generated_at)}</strong>
             </span>
+            {meta.mode === "forward" && meta.coverage?.start && (
+              <span>Forecast window <strong>{formatDateTime(meta.coverage.start)}</strong> – <strong>{formatDateTime(meta.coverage.end)}</strong></span>
+            )}
           </div>
         </section>
       )}
@@ -272,15 +292,15 @@ export default function ForecastingPage() {
             />
             <Stat
               icon="🎯"
-              label="Largest deviation"
-              value={chartSummary.maxDeviation}
-              sub="Actual minus predicted, where an actual exists"
+              label={forecast.mode === "forward" ? "Validation MAE" : "Largest deviation"}
+              value={forecast.mode === "forward" ? formatNumber(forecast.metrics?.validation_mae, 4) : chartSummary.maxDeviation}
+              sub={forecast.mode === "forward" ? "Error on recent held-out hours" : "Actual minus predicted, where an actual exists"}
             />
           </section>
 
           <article className="card">
             <CardHeader
-              title={`Actual vs predicted · ${forecast.meter_id}`}
+              title={`${forecast.mode === "forward" ? "Next-load forecast" : "Actual vs predicted"} · ${forecast.meter_id}`}
               text={`${horizon}-hour horizon · ${forecast.unit || "kWh"} · generated ${formatDateTime(
                 forecast.generated_at
               )}`}
@@ -291,8 +311,9 @@ export default function ForecastingPage() {
                 <ForecastComparisonChart data={chartData} height={320} />
                 <ForecastErrorChart data={chartData} height={150} />
                 <p className="panel-footnote">
-                  The dashed baseline is the recorded same-hour-last-week value. Points
-                  without a recorded actual are predictions only.
+                  {forecast.mode === "forward"
+                    ? "The dashed baseline is the same-hour-last-week load. The forward forecast starts after the meter’s final recorded hour."
+                    : "The dashed baseline is the recorded same-hour-last-week value. Points without a recorded actual are predictions only."}
                 </p>
               </>
             ) : (

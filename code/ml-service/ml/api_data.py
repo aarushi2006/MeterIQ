@@ -39,6 +39,15 @@ FORECAST_PREDICTIONS_PATH = os.path.join(
 FORECAST_REPORT_PATH = os.path.join(
     config.output_dir, "forecasting", "forecast_report.json"
 )
+FORWARD_FORECASTS_PATH = os.path.join(
+    config.output_dir, "forecasting", "forward_forecasts.parquet"
+)
+FORWARD_FORECAST_REPORT_PATH = os.path.join(
+    config.output_dir, "forecasting", "forward_forecast_report.json"
+)
+FORWARD_FORECAST_MODEL_PATH = os.path.join(
+    config.output_dir, "forecasting", "forward_forecast_model.joblib"
+)
 PIPELINE_RUN_PATH = os.path.join(config.output_dir, "pipeline_run.json")
 
 _hourly_cache: Optional[pd.DataFrame] = None

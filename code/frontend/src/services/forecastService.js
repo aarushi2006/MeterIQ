@@ -5,11 +5,11 @@ export const forecastService = {
     return apiClient("/forecast/meta");
   },
 
-  async getForecast(meterId, horizon = 24) {
+  async getForecast(meterId, horizon = 24, start) {
     return apiClient(
       `/forecast?meterId=${encodeURIComponent(meterId)}&horizon=${encodeURIComponent(
         horizon
-      )}`
+      )}${start ? `&start=${encodeURIComponent(start)}` : ""}`
     );
   },
 };
