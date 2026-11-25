@@ -13,6 +13,31 @@ import {
 } from "../services";
 
 const numberFormat = new Intl.NumberFormat("en-IN");
+const DASHBOARD_CACHE_KEY = "meteriq_dashboard_snapshot";
+
+const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+
+async function retryRequest(request, attempts = 3) {
+  let lastError;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await request();
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts - 1) await wait(700 * (attempt + 1));
+    }
+  }
+  throw lastError;
+}
+
+function readDashboardCache() {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(DASHBOARD_CACHE_KEY));
+    return cached?.data ? cached : null;
+  } catch {
+    return null;
+  }
+}
 
 function formatNumber(value, digits = 0) {
   const number = Number(value);
@@ -40,6 +65,7 @@ export default function Dashboard({ onSelectMeter, onNavigate, currentUser }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [warnings, setWarnings] = useState([]);
+  const [showingCachedData, setShowingCachedData] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,7 +73,7 @@ export default function Dashboard({ onSelectMeter, onNavigate, currentUser }) {
     setWarnings([]);
 
     const results = await Promise.allSettled([
-      anomalyService.getSummary(),
+      retryRequest(() => anomalyService.getSummary()),
       consumptionService.getRegionalStats(),
       meterService.getMeters({ page: 1, pageSize: 1 }),
       investigationService.getInvestigations({ status: "all" }),
@@ -64,9 +90,15 @@ export default function Dashboard({ onSelectMeter, onNavigate, currentUser }) {
       results;
 
     if (summary.status === "rejected") {
-      setError(
-        summary.reason.message || "Unable to load anomaly summary."
-      );
+      const cached = readDashboardCache();
+      if (cached) {
+        setData(cached.data);
+        setWarnings(["Live analytics are temporarily unavailable. Showing the most recently loaded dashboard data."]);
+        setShowingCachedData(true);
+        setLoading(false);
+        return;
+      }
+      setError(summary.reason.message || "Unable to load analytics. Please retry in a moment.");
       setLoading(false);
       return;
     }
@@ -107,7 +139,7 @@ export default function Dashboard({ onSelectMeter, onNavigate, currentUser }) {
 
     setWarnings(nextWarnings);
 
-    setData({
+    const nextData = {
       summary: summary.value,
       regional:
         regional.status === "fulfilled" ? regional.value : null,
@@ -120,7 +152,14 @@ export default function Dashboard({ onSelectMeter, onNavigate, currentUser }) {
       leaders: leaders.status === "fulfilled" ? leaders.value : null,
       anomalies:
         anomalies.status === "fulfilled" ? anomalies.value : null,
-    });
+    };
+    setData(nextData);
+    setShowingCachedData(false);
+    try {
+      sessionStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({ savedAt: new Date().toISOString(), data: nextData }));
+    } catch {
+      // Dashboard caching is a resilience enhancement; rendering must not depend on it.
+    }
 
     setLoading(false);
   }, []);
@@ -233,6 +272,12 @@ export default function Dashboard({ onSelectMeter, onNavigate, currentUser }) {
               <li key={warning}>{warning}</li>
             ))}
           </ul>
+        </InlineNotice>
+      )}
+
+      {showingCachedData && (
+        <InlineNotice tone="info" title="Showing saved dashboard data">
+          The live analytics service is reconnecting. Use Refresh or return shortly for the latest values.
         </InlineNotice>
       )}
 
