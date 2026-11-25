@@ -4,6 +4,11 @@ name: Deploy MkDocs site
   push:
     branches:
       - master
+    paths:
+      - "docs/**"
+      - "assets/**"
+      - "mkdocs.yml"
+      - ".github/workflows/mkdocs.yml"
   workflow_dispatch:
 
 permissions:
