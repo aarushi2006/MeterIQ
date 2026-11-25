@@ -23,6 +23,12 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(number) ? number : fallback;
 }
 
+// The ML service can briefly cold-start on its hosting platform.  Keep a
+// validated in-process snapshot so a transient upstream 5xx never blanks an
+// otherwise usable dashboard. The snapshot is only replaced after a complete
+// successful ML response; it is never fabricated from partial data.
+let lastSuccessfulCatalog = null;
+
 function buildSummary(meters) {
   const summary = {
     totalMeters: meters.length,
@@ -118,7 +124,17 @@ function enrichMeter(meter) {
  * two rather than silently falling back to one when the other is unavailable.
  */
 async function fetchMeterCatalog() {
-  const response = await mlService.fetchFromML("/meters");
+  let response;
+  try {
+    response = await mlService.fetchFromML("/meters");
+  } catch (error) {
+    if (lastSuccessfulCatalog) {
+      console.warn(`ML catalogue temporarily unavailable; serving snapshot from ${lastSuccessfulCatalog.cachedAt}: ${error.message}`);
+      return { ...lastSuccessfulCatalog, stale: true, staleReason: error.message };
+    }
+    throw error;
+  }
+
   const meters = Array.isArray(response)
     ? response
     : Array.isArray(response?.meters)
@@ -126,7 +142,7 @@ async function fetchMeterCatalog() {
       : [];
 
   if (!meters.length) {
-    return { meters: [], summary: buildSummary([]), regions: [] };
+    return { meters: [], summary: buildSummary([]), regions: [], stale: false };
   }
 
   const enriched = meters.map(enrichMeter);
@@ -162,7 +178,15 @@ async function fetchMeterCatalog() {
     .filter(Boolean)
     .sort();
 
-  return { meters: enriched, summary: buildSummary(enriched), regions };
+  const catalog = {
+    meters: enriched,
+    summary: buildSummary(enriched),
+    regions,
+    cachedAt: new Date().toISOString(),
+    stale: false,
+  };
+  lastSuccessfulCatalog = catalog;
+  return catalog;
 }
 
 function applyFilters(meters, query) {

@@ -78,7 +78,9 @@ const mlService = {
         } catch (error) {
           lastError = error;
           if (error.response && error.response.status < 500) break;
-          if (attempt === 0) await wait(400);
+          // Render cold starts commonly need a few seconds. A short
+          // exponential retry is more reliable than instantly surfacing 502.
+          if (attempt === 0) await wait(1200);
         }
       }
     }
@@ -97,7 +99,7 @@ const mlService = {
         } catch (error) {
           lastError = error;
           if (error.response && error.response.status < 500) break;
-          if (attempt === 0) await wait(400);
+          if (attempt === 0) await wait(1200);
         }
       }
     }
