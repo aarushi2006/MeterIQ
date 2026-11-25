@@ -225,9 +225,9 @@ export default function AnomalyDetection({
         />
         <Stat
           icon="⚠️"
-          label="Flagged meters"
+          label="Meters requiring review"
           value={formatNumber(summary?.flaggedMeters)}
-          sub={`${formatPercent(summary?.flagRate)} of the fleet`}
+          sub={`${formatPercent(summary?.flagRate)} of the fleet • ${formatNumber(summary?.metersWithSignals)} with historical signals`}
           color="danger"
         />
         <Stat

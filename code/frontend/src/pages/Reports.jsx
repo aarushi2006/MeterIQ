@@ -165,7 +165,7 @@ export default function Reports({ onShowToast }) {
           icon="📡"
           label="Meters in scope"
           value={formatNumber(summary?.meterCount ?? meters.totalMeters)}
-          sub={`${formatNumber(meters.flaggedMeters)} flagged`}
+          sub={`${formatNumber(meters.flaggedMeters)} requiring review`}
         />
         <Stat
           icon="⚠️"

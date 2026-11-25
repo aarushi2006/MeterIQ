@@ -26,7 +26,11 @@ function toNumber(value, fallback = 0) {
 function buildSummary(meters) {
   const summary = {
     totalMeters: meters.length,
+    // A meter is actionable only when its aggregate model tier asks for a
+    // review.  Keep historical-signal coverage separate: with long time
+    // series, nearly every meter will eventually have at least one outlier.
     flaggedMeters: 0,
+    metersWithSignals: 0,
     highRiskMeters: 0,
     reviewMeters: 0,
     normalMeters: 0,
@@ -47,7 +51,8 @@ function buildSummary(meters) {
     else summary.normalMeters += 1;
 
     const anomalyCount = toNumber(meter.anomaly_count);
-    if (anomalyCount > 0) summary.flaggedMeters += 1;
+    if (anomalyCount > 0) summary.metersWithSignals += 1;
+    if (risk !== "NORMAL") summary.flaggedMeters += 1;
 
     summary.totalObservations += toNumber(meter.total_observations);
     summary.totalAnomalyObservations += anomalyCount;
@@ -94,12 +99,15 @@ function enrichMeter(meter) {
       : [],
     risk_level: riskLevel,
     status:
-      anomalyCount > 0
-        ? riskLevel === "HIGH_RISK"
-          ? "Priority Review"
-          : "Under Review"
-        : "Normal",
-    flagged: anomalyCount > 0,
+      riskLevel === "HIGH_RISK"
+        ? "Priority Review"
+        : riskLevel === "REVIEW"
+          ? "Under Review"
+          : "Normal",
+    // This boolean is intentionally aligned with the fleet review queue,
+    // rather than the presence of any historical outlier.
+    flagged: riskLevel !== "NORMAL",
+    has_historical_signal: anomalyCount > 0,
     updatedAt: meter.updatedAt || null,
   };
 }

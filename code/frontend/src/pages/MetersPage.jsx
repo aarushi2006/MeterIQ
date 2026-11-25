@@ -176,7 +176,7 @@ export default function MetersPage({ onSelectMeter }) {
         {summary && (
           <div className="filter-summary-row">
             <span><strong>{formatNumber(summary.totalMeters)}</strong> meters</span>
-            <span><strong>{formatNumber(summary.flaggedMeters)}</strong> flagged</span>
+            <span><strong>{formatNumber(summary.flaggedMeters)}</strong> requiring review</span>
             <span><strong>{formatNumber(summary.highRiskMeters)}</strong> high risk</span>
             <span><strong>{formatNumber(summary.totalAnomalyObservations)}</strong> anomaly observations</span>
           </div>

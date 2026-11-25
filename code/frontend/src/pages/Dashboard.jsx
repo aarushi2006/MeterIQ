@@ -310,7 +310,7 @@ export default function Dashboard({ onSelectMeter, onNavigate, currentUser }) {
         />
 
         <Stat
-          label="Flagged Meters"
+          label="Meters Requiring Review"
           value={formatNumber(flaggedMeters)}
           icon="⚠️"
           trend={`${formatNumber(flaggedRate, 2)}% of fleet`}
