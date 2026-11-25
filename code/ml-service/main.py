@@ -852,6 +852,39 @@ def get_diurnal_patterns(region: str = "all"):
         raise HTTPException(status_code=500, detail=str(error))
 
 
+@app.get("/analytics/consumption-leaders")
+def get_consumption_leaders(
+    range_value: str = Query("7D", alias="range"),
+    limit: int = Query(8, ge=1, le=25),
+):
+    """Return measured top-consuming meters for the selected historical range."""
+    try:
+        hourly = api_data.get_hourly()
+        end = hourly["hour"].max()
+        days = api_data.parse_range_days(range_value)
+        start = end - pd.Timedelta(days=days) if days else hourly["hour"].min()
+        frame = hourly[(hourly["hour"] >= start) & (hourly["hour"] <= end)]
+        leaders = (
+            frame.groupby(["meter_id", "region"], observed=True)["consumption"]
+            .sum()
+            .sort_values(ascending=False)
+            .head(limit)
+            .reset_index()
+        )
+        return {
+            "range": range_value,
+            "unit": "kWh",
+            "coverage": {"start": api_data.to_iso(start), "end": api_data.to_iso(end)},
+            "meters": [
+                {"meter_id": str(row.meter_id), "region": str(row.region), "consumption": round(float(row.consumption), 4)}
+                for row in leaders.itertuples(index=False)
+            ],
+        }
+    except Exception as error:
+        logger.exception("Consumption leaders analytics error")
+        raise HTTPException(status_code=500, detail=str(error))
+
+
 @app.get("/analytics/regional")
 def get_regional_analytics():
     try:

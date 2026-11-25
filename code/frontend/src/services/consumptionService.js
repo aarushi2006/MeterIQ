@@ -22,6 +22,10 @@ export const consumptionService = {
     return apiClient(`/analytics/diurnal${query({ region })}`);
   },
 
+  async getConsumptionLeaders({ range = "7D", limit = 8 } = {}) {
+    return apiClient(`/analytics/consumption-leaders${query({ range, limit })}`);
+  },
+
   async getRegionalStats() {
     return apiClient("/analytics/regional");
   },

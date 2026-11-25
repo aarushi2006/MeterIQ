@@ -17,6 +17,12 @@ exports.getDiurnalPatterns = asyncHandler(async (req, res) => {
   res.json(data);
 });
 
+exports.getConsumptionLeaders = asyncHandler(async (req, res) => {
+  const { range = "7D", limit = 8 } = req.query;
+  const data = await mlService.fetchFromML("/analytics/consumption-leaders", { range, limit });
+  res.json(data);
+});
+
 exports.getRegionalStats = asyncHandler(async (req, res) => {
   const data = await mlService.fetchFromML("/analytics/regional");
   res.json(data);

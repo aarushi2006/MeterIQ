@@ -52,6 +52,7 @@ export default function Dashboard({ onSelectMeter, onNavigate, currentUser }) {
       meterService.getMeters({ page: 1, pageSize: 1 }),
       investigationService.getInvestigations({ status: "all" }),
       consumptionService.getConsumption({ range: "7D" }),
+      consumptionService.getConsumptionLeaders({ range: "7D", limit: 8 }),
       anomalyService.getAnomalies({
         page: 1,
         pageSize: 5,
@@ -59,7 +60,7 @@ export default function Dashboard({ onSelectMeter, onNavigate, currentUser }) {
       }),
     ]);
 
-    const [summary, regional, meters, cases, consumption, anomalies] =
+    const [summary, regional, meters, cases, consumption, leaders, anomalies] =
       results;
 
     if (summary.status === "rejected") {
@@ -102,6 +103,8 @@ export default function Dashboard({ onSelectMeter, onNavigate, currentUser }) {
       );
     }
 
+    if (leaders.status === "rejected") nextWarnings.push(`Consumption leaders: ${leaders.reason.message}`);
+
     setWarnings(nextWarnings);
 
     setData({
@@ -114,6 +117,7 @@ export default function Dashboard({ onSelectMeter, onNavigate, currentUser }) {
         cases.status === "fulfilled" ? cases.value : null,
       consumption:
         consumption.status === "fulfilled" ? consumption.value : null,
+      leaders: leaders.status === "fulfilled" ? leaders.value : null,
       anomalies:
         anomalies.status === "fulfilled" ? anomalies.value : null,
     });
@@ -370,6 +374,20 @@ export default function Dashboard({ onSelectMeter, onNavigate, currentUser }) {
       </section>
 
       <section className="grid2">
+        <article className="card">
+          <CardHeader title="Highest measured consumption" text="Top meters by recorded consumption over the latest seven days" right={<button className="link-button" onClick={() => onNavigate?.("meters")}>Review meters →</button>} />
+          {data.leaders?.meters?.length ? (
+            <ol className="indicator-list consumption-leaders-list">
+              {data.leaders.meters.map((meter) => (
+                <li key={meter.meter_id}>
+                  <button className="meter-link-btn" onClick={() => onSelectMeter?.({ meter_id: meter.meter_id })}>{meter.meter_id}</button>
+                  <span>{meter.region}</span>
+                  <strong>{formatKwh(meter.consumption)}</strong>
+                </li>
+              ))}
+            </ol>
+          ) : <p className="empty-table-cell">No measured consumption ranking is available.</p>}
+        </article>
         <article className="card">
           <CardHeader
             title="Top Indicators"
