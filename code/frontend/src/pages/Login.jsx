@@ -43,6 +43,12 @@ export default function Login({ onLogin }) {
   return (
     <div className="enterprise-login-page">
       <div className="login-bg-overlay" />
+      <div className="login-energy-field" aria-hidden="true">
+        <span className="energy-orb orb-one" />
+        <span className="energy-orb orb-two" />
+        <span className="energy-orb orb-three" />
+        <span className="energy-grid" />
+      </div>
 
       <div className="login-dual-container">
         <section className="login-brand-panel">
