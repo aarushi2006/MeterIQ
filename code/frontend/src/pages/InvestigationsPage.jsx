@@ -13,7 +13,7 @@ import { authService } from "../services/authService";
 import { investigationService } from "../services/investigationService";
 import { meterService } from "../services/meterService";
 
-const STATUSES = ["OPEN", "IN PROGRESS", "RESOLVED"];
+const STATUSES = ["OPEN", "IN PROGRESS", "SUBMITTED FOR REVIEW", "RESOLVED"];
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH"];
 
 function formatNumber(value) {
@@ -49,6 +49,7 @@ export default function InvestigationsPage({
   const [cases, setCases] = useState([]);
   const [statusCounts, setStatusCounts] = useState({ OPEN: 0, "IN PROGRESS": 0, RESOLVED: 0, total: 0 });
   const [regions, setRegions] = useState([]);
+  const [analysts, setAnalysts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -60,7 +61,9 @@ export default function InvestigationsPage({
   const [activeId, setActiveId] = useState(null);
   const [noteText, setNoteText] = useState("");
   const [resolution, setResolution] = useState("");
-  const [assignee, setAssignee] = useState("");
+  const [assignedUser, setAssignedUser] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [assignmentInstructions, setAssignmentInstructions] = useState("");
   const [priority, setPriority] = useState("MEDIUM");
   const [saving, setSaving] = useState(false);
 
@@ -70,7 +73,9 @@ export default function InvestigationsPage({
     region: "",
     reason: "",
     priority: "MEDIUM",
-    assignedTo: "",
+    assignedUser: "",
+    dueDate: "",
+    assignmentInstructions: "",
   });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
@@ -96,6 +101,15 @@ export default function InvestigationsPage({
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!canManage) return undefined;
+    let active = true;
+    investigationService.getEligibleAnalysts()
+      .then((data) => { if (active) setAnalysts(data.analysts || []); })
+      .catch(() => { if (active) setAnalysts([]); });
+    return () => { active = false; };
+  }, [canManage]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -128,7 +142,9 @@ export default function InvestigationsPage({
 
   useEffect(() => {
     if (activeCase) {
-      setAssignee(activeCase.assignedTo || "");
+      setAssignedUser(activeCase.assignedUser || "");
+      setDueDate(activeCase.dueDate ? new Date(activeCase.dueDate).toISOString().slice(0, 10) : "");
+      setAssignmentInstructions(activeCase.assignmentInstructions || "");
       setPriority(activeCase.priority || "MEDIUM");
       setResolution(activeCase.resolution || "");
       setNoteText("");
@@ -172,10 +188,12 @@ export default function InvestigationsPage({
     try {
       const updated = await investigationService.updateCase(activeCase.id, {
         priority,
-        assignedTo: assignee.trim(),
+        assignedUser: assignedUser || null,
+        dueDate: dueDate || null,
+        assignmentInstructions: assignmentInstructions.trim(),
       });
       replaceCase(updated);
-      onShowToast?.("Case assignment and priority updated.", "success");
+      onShowToast?.("Case assignment details updated.", "success");
     } catch (err) {
       onShowToast?.(err.message || "Unable to update the case.", "error");
     } finally {
@@ -215,11 +233,13 @@ export default function InvestigationsPage({
         region: createForm.region || undefined,
         reason: createForm.reason.trim(),
         priority: createForm.priority,
-        assignedTo: createForm.assignedTo.trim() || undefined,
+        assignedUser: createForm.assignedUser || undefined,
+        dueDate: createForm.dueDate || undefined,
+        assignmentInstructions: createForm.assignmentInstructions.trim() || undefined,
         detectedDate: new Date().toISOString(),
       });
       setCreateOpen(false);
-      setCreateForm({ meter_id: "", region: "", reason: "", priority: "MEDIUM", assignedTo: "" });
+      setCreateForm({ meter_id: "", region: "", reason: "", priority: "MEDIUM", assignedUser: "", dueDate: "", assignmentInstructions: "" });
       onShowToast?.(`Investigation ${created.id} created`, "success");
       setActiveId(created._id);
       await load();
@@ -236,7 +256,9 @@ export default function InvestigationsPage({
       region: "",
       reason: "",
       priority: "MEDIUM",
-      assignedTo: "",
+      assignedUser: "",
+      dueDate: "",
+      assignmentInstructions: "",
     });
     setCreateError(null);
     setCreateOpen(true);
@@ -249,8 +271,8 @@ export default function InvestigationsPage({
           <label>HUMAN-IN-THE-LOOP WORKFLOW</label>
           <h1>Investigation Management</h1>
           <p>
-            Track verification work for flagged meters. Cases, assignments, notes, and
-            history are stored in MongoDB through the MeterIQ API.
+            Track verification work for flagged meters, with controlled assignments,
+            notes, deadlines, and case history.
           </p>
         </div>
         {canManage && (
@@ -262,13 +284,13 @@ export default function InvestigationsPage({
 
       {!canManage && (
         <InlineNotice tone="info">
-          Your analyst role can review cases and add notes. Only a supervisor or
-          administrator can create cases, change status, reassign, or set priority.
+          This is your assigned case queue. You can record notes and move your work
+          into progress or submit it for supervisor review.
         </InlineNotice>
       )}
 
       <section className="stats kpi-grid-4">
-        <Stat icon="📁" label="Total cases" value={formatNumber(statusCounts.total)} sub="Stored in MongoDB" />
+        <Stat icon="📁" label="Total cases" value={formatNumber(statusCounts.total)} sub={canManage ? "Current case workload" : "Assigned to you"} />
         <Stat icon="🟡" label="Open" value={formatNumber(statusCounts.OPEN)} sub="Awaiting triage" />
         <Stat
           icon="🔵"
@@ -405,6 +427,10 @@ export default function InvestigationsPage({
                     <strong className="spec-value">{activeCase.assignedTo || "Unassigned"}</strong>
                   </div>
                   <div className="spec-item">
+                    <span className="spec-label">Due date</span>
+                    <strong className="spec-value">{formatDateTime(activeCase.dueDate)}</strong>
+                  </div>
+                  <div className="spec-item">
                     <span className="spec-label">Risk score</span>
                     <strong className="spec-value">
                       {Number.isFinite(Number(activeCase.riskScore))
@@ -425,6 +451,13 @@ export default function InvestigationsPage({
                     <p className="case-evidence">Evidence: {activeCase.evidence}</p>
                   )}
                 </div>
+
+                {activeCase.assignmentInstructions && (
+                  <div className="case-block">
+                    <h4>Assignment instructions</h4>
+                    <p>{activeCase.assignmentInstructions}</p>
+                  </div>
+                )}
 
                 {activeCase.resolution && (
                   <div className="case-block">
@@ -447,15 +480,23 @@ export default function InvestigationsPage({
                           ))}
                         </select>
                       </Field>
-                      <Field label="Assigned to" hint="Name or team recorded in the case history">
-                        <input
-                          type="text"
-                          value={assignee}
-                          onChange={(event) => setAssignee(event.target.value)}
-                          placeholder="e.g. Field verification team"
-                        />
+                      <Field label="Assigned analyst">
+                        <select value={assignedUser} onChange={(event) => setAssignedUser(event.target.value)}>
+                          <option value="">Unassigned</option>
+                          {analysts.map((analyst) => (
+                            <option key={analyst.id} value={analyst.id}>
+                              {analyst.fullName} · {analyst.workload.assigned} assigned
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <Field label="Due date">
+                        <input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
                       </Field>
                     </div>
+                    <Field label="Assignment instructions">
+                      <textarea rows={2} value={assignmentInstructions} onChange={(event) => setAssignmentInstructions(event.target.value)} placeholder="What should the analyst verify?" />
+                    </Field>
                     <div className="case-action-row">
                       <button
                         className="secondary"
@@ -485,6 +526,16 @@ export default function InvestigationsPage({
                         />
                       </Field>
                     )}
+                  </div>
+                )}
+
+                {!canManage && activeCase.status !== "RESOLVED" && (
+                  <div className="case-block">
+                    <h4>My progress</h4>
+                    <div className="case-action-row">
+                      {activeCase.status !== "IN PROGRESS" && <button className="secondary" onClick={async () => { setSaving(true); try { replaceCase(await investigationService.updateProgress(activeCase.id, "IN PROGRESS")); onShowToast?.("Case marked in progress.", "success"); } catch (err) { onShowToast?.(err.message || "Unable to update progress.", "error"); } finally { setSaving(false); } }} disabled={saving}>Start investigation</button>}
+                      {activeCase.status !== "SUBMITTED FOR REVIEW" && <button className="primary" onClick={async () => { setSaving(true); try { replaceCase(await investigationService.updateProgress(activeCase.id, "SUBMITTED FOR REVIEW")); onShowToast?.("Case submitted for review.", "success"); } catch (err) { onShowToast?.(err.message || "Unable to update progress.", "error"); } finally { setSaving(false); } }} disabled={saving}>Submit for review</button>}
+                    </div>
                   </div>
                 )}
 
@@ -622,16 +673,13 @@ export default function InvestigationsPage({
                     ))}
                   </select>
                 </Field>
-                <Field label="Assign to" hint="Optional">
-                  <input
-                    type="text"
-                    value={createForm.assignedTo}
-                    onChange={(event) =>
-                      setCreateForm((current) => ({ ...current, assignedTo: event.target.value }))
-                    }
-                    placeholder="Name or team"
-                  />
+                <Field label="Assign analyst" hint="Optional">
+                  <select value={createForm.assignedUser} onChange={(event) => setCreateForm((current) => ({ ...current, assignedUser: event.target.value }))}>
+                    <option value="">Unassigned</option>
+                    {analysts.map((analyst) => <option key={analyst.id} value={analyst.id}>{analyst.fullName} · {analyst.workload.assigned} assigned</option>)}
+                  </select>
                 </Field>
+                <Field label="Due date"><input type="date" value={createForm.dueDate} onChange={(event) => setCreateForm((current) => ({ ...current, dueDate: event.target.value }))} /></Field>
               </div>
               <Field label="Reason" hint="Record what prompted this investigation">
                 <textarea
@@ -643,6 +691,9 @@ export default function InvestigationsPage({
                   placeholder="Describe the anomaly indicator or verification request…"
                   required
                 />
+              </Field>
+              <Field label="Assignment instructions" hint="Optional guidance for the assigned analyst">
+                <textarea rows={2} value={createForm.assignmentInstructions} onChange={(event) => setCreateForm((current) => ({ ...current, assignmentInstructions: event.target.value }))} placeholder="Describe the required verification work…" />
               </Field>
             </div>
             <div className="modal-footer">

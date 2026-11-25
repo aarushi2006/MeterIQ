@@ -1,211 +1,166 @@
+const mongoose = require("mongoose");
 const Investigation = require("../models/Investigation");
+const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
 
-const ALLOWED_STATUSES = ["OPEN", "IN PROGRESS", "RESOLVED"];
+const ALLOWED_STATUSES = ["OPEN", "IN PROGRESS", "SUBMITTED FOR REVIEW", "RESOLVED"];
+const ANALYST_STATUSES = ["IN PROGRESS", "SUBMITTED FOR REVIEW"];
 const ALLOWED_PRIORITIES = ["LOW", "MEDIUM", "HIGH"];
 
-function actorName(req) {
-  return req.user?.fullName || req.user?.email || req.user?.id || "System";
+const actorName = (req) => req.user?.fullName || req.user?.email || req.user?.id || "System";
+const isManager = (req) => ["supervisor", "admin"].includes(req.user?.role);
+const makeId = () => `INV-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+
+function byIdOrCaseId(id) {
+  return { $or: [{ _id: mongoose.isValidObjectId(id) ? id : null }, { id }] };
 }
 
-function makeId() {
-  const now = new Date();
-  const date = now.toISOString().slice(0, 10).replace(/-/g, "");
-  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `INV-${date}-${suffix}`;
+function analystAccess(req) {
+  return {
+    $or: [
+      { assignedUser: req.user.id },
+      { assignedUser: { $exists: false }, assignedTo: req.user.fullName },
+      { assignedUser: { $exists: false }, assignedTo: req.user.email },
+    ],
+  };
+}
+
+function accessibleQuery(req, id) {
+  const identifier = byIdOrCaseId(id);
+  return isManager(req) ? identifier : { $and: [identifier, analystAccess(req)] };
+}
+
+async function resolveAssignee(assignedUser) {
+  if (assignedUser === undefined) return undefined;
+  if (!assignedUser) return null;
+  if (!mongoose.isValidObjectId(assignedUser)) {
+    const error = new Error("A valid analyst must be selected.");
+    error.status = 400;
+    throw error;
+  }
+  const analyst = await User.findOne({ _id: assignedUser, role: "analyst", isActive: true })
+    .select("_id fullName role")
+    .lean();
+  if (!analyst) {
+    const error = new Error("The selected analyst is unavailable.");
+    error.status = 400;
+    throw error;
+  }
+  return analyst;
+}
+
+function buildCounts(rows) {
+  const counts = { OPEN: 0, "IN PROGRESS": 0, "SUBMITTED FOR REVIEW": 0, RESOLVED: 0, total: 0 };
+  rows.forEach(({ _id, count }) => { counts[_id] = count; counts.total += count; });
+  return counts;
 }
 
 exports.getInvestigations = asyncHandler(async (req, res) => {
   const { status = "all", region = "all", search = "" } = req.query;
-
-  const query = {};
-  if (status && status !== "all") query.status = status;
-  if (region && region !== "all") query.region = region;
-  if (search) {
-    query.$or = [
-      { id: { $regex: search, $options: "i" } },
-      { meter_id: { $regex: search, $options: "i" } },
-      { reason: { $regex: search, $options: "i" } },
-      { assignedTo: { $regex: search, $options: "i" } },
-    ];
-  }
-
+  const filters = [];
+  if (!isManager(req)) filters.push(analystAccess(req));
+  if (status && status !== "all") filters.push({ status });
+  if (region && region !== "all") filters.push({ region });
+  if (search) filters.push({ $or: [
+    { id: { $regex: search, $options: "i" } }, { meter_id: { $regex: search, $options: "i" } },
+    { reason: { $regex: search, $options: "i" } }, { assignedTo: { $regex: search, $options: "i" } },
+  ] });
+  const query = filters.length ? { $and: filters } : {};
   const [investigations, counts] = await Promise.all([
     Investigation.find(query).sort({ updatedAt: -1, createdAt: -1 }).lean(),
-    Investigation.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
+    Investigation.aggregate([{ $match: query }, { $group: { _id: "$status", count: { $sum: 1 } } }]),
   ]);
-
-  const statusCounts = { OPEN: 0, "IN PROGRESS": 0, RESOLVED: 0, total: 0 };
-  for (const row of counts) {
-    statusCounts[row._id] = row.count;
-    statusCounts.total += row.count;
-  }
-
-  res.json({ investigations, total: investigations.length, statusCounts });
+  res.json({ investigations, total: investigations.length, statusCounts: buildCounts(counts) });
 });
 
 exports.getInvestigation = asyncHandler(async (req, res) => {
-  const investigation = await Investigation.findOne({
-    $or: [{ _id: req.params.id.match(/^[a-f0-9]{24}$/i) ? req.params.id : null }, { id: req.params.id }],
-  }).lean();
-
-  if (!investigation) {
-    return res.status(404).json({ message: "Investigation not found" });
-  }
-
+  const investigation = await Investigation.findOne(accessibleQuery(req, req.params.id)).lean();
+  if (!investigation) return res.status(404).json({ message: "Investigation not found" });
   res.json(investigation);
 });
 
+exports.getEligibleAnalysts = asyncHandler(async (_req, res) => {
+  const [analysts, workload] = await Promise.all([
+    User.find({ role: "analyst", isActive: true }).select("_id fullName").sort({ fullName: 1 }).lean(),
+    Investigation.aggregate([
+      { $match: { assignedUser: { $exists: true } } },
+      { $group: { _id: { user: "$assignedUser", status: "$status" }, count: { $sum: 1 } } },
+    ]),
+  ]);
+  const counts = new Map();
+  workload.forEach((row) => {
+    const key = String(row._id.user);
+    const value = counts.get(key) || { assigned: 0, pending: 0, inProgress: 0, submitted: 0, completed: 0 };
+    value.assigned += row.count;
+    if (row._id.status === "OPEN") value.pending += row.count;
+    if (row._id.status === "IN PROGRESS") value.inProgress += row.count;
+    if (row._id.status === "SUBMITTED FOR REVIEW") value.submitted += row.count;
+    if (row._id.status === "RESOLVED") value.completed += row.count;
+    counts.set(key, value);
+  });
+  res.json({ analysts: analysts.map((analyst) => ({ id: analyst._id, fullName: analyst.fullName, workload: counts.get(String(analyst._id)) || { assigned: 0, pending: 0, inProgress: 0, submitted: 0, completed: 0 } })) });
+});
+
 exports.createInvestigation = asyncHandler(async (req, res) => {
-  const {
-    meter_id,
-    reason,
-    region,
-    area,
-    riskScore,
-    riskLevel,
-    priority,
-    detectedDate,
-    evidence,
-    assignedTo,
-    assignedRole,
-    id,
-  } = req.body || {};
-
-  if (!meter_id || !String(meter_id).trim()) {
-    return res.status(400).json({ message: "meter_id is required" });
-  }
-  if (!reason || !String(reason).trim()) {
-    return res.status(400).json({ message: "reason is required" });
-  }
-
+  const { meter_id, reason, region, area, riskScore, riskLevel, priority, detectedDate, evidence, assignmentInstructions, dueDate, assignedUser, id } = req.body || {};
+  if (!meter_id || !String(meter_id).trim()) return res.status(400).json({ message: "meter_id is required" });
+  if (!reason || !String(reason).trim()) return res.status(400).json({ message: "reason is required" });
+  if (dueDate && Number.isNaN(new Date(dueDate).getTime())) return res.status(400).json({ message: "dueDate must be a valid date" });
+  const assignee = await resolveAssignee(assignedUser);
   const now = new Date().toISOString();
   const requestedId = id ? String(id) : null;
   let investigationId = requestedId || makeId();
-
-  if (requestedId && (await Investigation.exists({ id: requestedId }))) {
-    return res.status(409).json({ message: `Investigation ${requestedId} already exists` });
-  }
-
-  // Extremely unlikely collision, but never return a 500 for it.
+  if (requestedId && await Investigation.exists({ id: requestedId })) return res.status(409).json({ message: `Investigation ${requestedId} already exists` });
   let attempts = 0;
-  while (!requestedId && (await Investigation.exists({ id: investigationId })) && attempts < 5) {
-    investigationId = makeId();
-    attempts += 1;
-  }
-
+  while (!requestedId && await Investigation.exists({ id: investigationId }) && attempts < 5) { investigationId = makeId(); attempts += 1; }
   const investigation = await Investigation.create({
-    id: investigationId,
-    meter_id: String(meter_id),
-    region: region || "Unknown",
-    area,
-    riskScore: Number.isFinite(Number(riskScore)) ? Number(riskScore) : undefined,
-    riskLevel,
-    priority: ALLOWED_PRIORITIES.includes(priority) ? priority : "MEDIUM",
-    status: "OPEN",
-    detectedDate: detectedDate || now,
-    reason: String(reason),
-    evidence,
-    assignedTo,
-    assignedRole,
-    createdBy: actorName(req),
-    notes: [],
-    history: [
-      {
-        action: "CREATED",
-        detail: `Case opened for meter ${meter_id}`,
-        by: actorName(req),
-        at: now,
-      },
-    ],
-    updatedAt: now,
+    id: investigationId, meter_id: String(meter_id), region: region || "Unknown", area,
+    riskScore: Number.isFinite(Number(riskScore)) ? Number(riskScore) : undefined, riskLevel,
+    priority: ALLOWED_PRIORITIES.includes(priority) ? priority : "MEDIUM", status: "OPEN", detectedDate: detectedDate || now,
+    reason: String(reason), evidence, assignmentInstructions, dueDate: dueDate || undefined,
+    assignedUser: assignee?._id, assignedTo: assignee?.fullName, assignedRole: assignee?.role,
+    createdBy: actorName(req), notes: [], history: [{ action: "CREATED", detail: `Case opened for meter ${meter_id}`, by: actorName(req), at: now }], updatedAt: now,
   });
-
   res.status(201).json(investigation);
 });
 
 exports.updateStatus = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { status, resolution, assignedTo, assignedRole, priority } = req.body || {};
+  const { status, resolution, priority, assignedUser, assignmentInstructions, dueDate } = req.body || {};
+  if (status && !ALLOWED_STATUSES.includes(status)) return res.status(400).json({ message: `status must be one of: ${ALLOWED_STATUSES.join(", ")}` });
+  if (priority && !ALLOWED_PRIORITIES.includes(priority)) return res.status(400).json({ message: `priority must be one of: ${ALLOWED_PRIORITIES.join(", ")}` });
+  if (dueDate && Number.isNaN(new Date(dueDate).getTime())) return res.status(400).json({ message: "dueDate must be a valid date" });
+  const investigation = await Investigation.findOne(byIdOrCaseId(req.params.id));
+  if (!investigation) return res.status(404).json({ message: "Investigation not found" });
+  const assignee = await resolveAssignee(assignedUser);
+  const now = new Date().toISOString(); const changes = [];
+  if (status && status !== investigation.status) { changes.push(`Status ${investigation.status} → ${status}`); investigation.status = status; }
+  if (resolution !== undefined && resolution !== null) { investigation.resolution = resolution; changes.push("Resolution recorded"); }
+  if (priority && priority !== investigation.priority) { changes.push(`Priority ${investigation.priority} → ${priority}`); investigation.priority = priority; }
+  if (assignedUser !== undefined) { investigation.assignedUser = assignee?._id; investigation.assignedTo = assignee?.fullName; investigation.assignedRole = assignee?.role; changes.push(assignee ? `Assigned to ${assignee.fullName}` : "Assignment cleared"); }
+  if (assignmentInstructions !== undefined) { investigation.assignmentInstructions = assignmentInstructions || undefined; changes.push("Assignment instructions updated"); }
+  if (dueDate !== undefined) { investigation.dueDate = dueDate || undefined; changes.push("Due date updated"); }
+  investigation.updatedAt = now; investigation.history.push({ action: status ? `STATUS_${status.replace(/\s+/g, "_")}` : "UPDATED", detail: changes.join("; ") || "Case updated", by: actorName(req), at: now });
+  await investigation.save(); res.json(investigation);
+});
 
-  if (status && !ALLOWED_STATUSES.includes(status)) {
-    return res.status(400).json({
-      message: `status must be one of: ${ALLOWED_STATUSES.join(", ")}`,
-    });
-  }
-  if (priority && !ALLOWED_PRIORITIES.includes(priority)) {
-    return res.status(400).json({
-      message: `priority must be one of: ${ALLOWED_PRIORITIES.join(", ")}`,
-    });
-  }
-
-  const investigation = await Investigation.findOne({
-    $or: [{ _id: id.match(/^[a-f0-9]{24}$/i) ? id : null }, { id }],
-  });
-
-  if (!investigation) {
-    return res.status(404).json({ message: "Investigation not found" });
-  }
-
+exports.updateAnalystProgress = asyncHandler(async (req, res) => {
+  if (isManager(req)) return exports.updateStatus(req, res);
+  const { status } = req.body || {};
+  if (!ANALYST_STATUSES.includes(status)) return res.status(400).json({ message: `status must be one of: ${ANALYST_STATUSES.join(", ")}` });
+  const investigation = await Investigation.findOne(accessibleQuery(req, req.params.id));
+  if (!investigation) return res.status(404).json({ message: "Investigation not found" });
   const now = new Date().toISOString();
-  const changes = [];
-  if (status && status !== investigation.status) {
-    changes.push(`Status ${investigation.status} → ${status}`);
-    investigation.status = status;
-  }
-  if (resolution !== undefined && resolution !== null) {
-    investigation.resolution = resolution;
-    changes.push("Resolution recorded");
-  }
-  if (assignedTo !== undefined) {
-    investigation.assignedTo = assignedTo || undefined;
-    changes.push(assignedTo ? `Assigned to ${assignedTo}` : "Assignment cleared");
-  }
-  if (assignedRole !== undefined) investigation.assignedRole = assignedRole || undefined;
-  if (priority && priority !== investigation.priority) {
-    changes.push(`Priority ${investigation.priority} → ${priority}`);
-    investigation.priority = priority;
-  }
-
-  investigation.updatedAt = now;
-  investigation.history.push({
-    action: status ? `STATUS_${status.replace(/\s+/g, "_")}` : "UPDATED",
-    detail: changes.join("; ") || "Case updated",
-    by: actorName(req),
-    at: now,
-  });
-
-  await investigation.save();
-  res.json(investigation);
+  if (investigation.status !== status) { investigation.history.push({ action: `STATUS_${status.replace(/\s+/g, "_")}`, detail: `Status ${investigation.status} → ${status}`, by: actorName(req), at: now }); investigation.status = status; }
+  investigation.updatedAt = now; await investigation.save(); res.json(investigation);
 });
 
 exports.addNote = asyncHandler(async (req, res) => {
-  const { id } = req.params;
   const { text } = req.body || {};
-
-  if (!text || !String(text).trim()) {
-    return res.status(400).json({ message: "Note text is required" });
-  }
-
-  const investigation = await Investigation.findOne({
-    $or: [{ _id: id.match(/^[a-f0-9]{24}$/i) ? id : null }, { id }],
-  });
-
-  if (!investigation) {
-    return res.status(404).json({ message: "Investigation not found" });
-  }
-
-  const now = new Date().toISOString();
-  const author = actorName(req);
+  if (!text || !String(text).trim()) return res.status(400).json({ message: "Note text is required" });
+  const investigation = await Investigation.findOne(accessibleQuery(req, req.params.id));
+  if (!investigation) return res.status(404).json({ message: "Investigation not found" });
+  const now = new Date().toISOString(); const author = actorName(req);
   investigation.notes.push({ author, text: String(text).trim(), time: now });
-  investigation.history.push({
-    action: "NOTE_ADDED",
-    detail: String(text).trim().slice(0, 200),
-    by: author,
-    at: now,
-  });
-  investigation.updatedAt = now;
-
-  await investigation.save();
-  res.json(investigation);
+  investigation.history.push({ action: "NOTE_ADDED", detail: String(text).trim().slice(0, 200), by: author, at: now });
+  investigation.updatedAt = now; await investigation.save(); res.json(investigation);
 });

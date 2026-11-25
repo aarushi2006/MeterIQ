@@ -20,6 +20,10 @@ export const investigationService = {
     return apiClient(`/investigations/${encodeURIComponent(id)}`);
   },
 
+  async getEligibleAnalysts() {
+    return apiClient("/investigations/analysts");
+  },
+
   async create(payload) {
     return apiClient("/investigations", {
       method: "POST",
@@ -38,6 +42,13 @@ export const investigationService = {
     return apiClient(`/investigations/${encodeURIComponent(id)}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status, resolution }),
+    });
+  },
+
+  async updateProgress(id, status) {
+    return apiClient(`/investigations/${encodeURIComponent(id)}/progress`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
     });
   },
 

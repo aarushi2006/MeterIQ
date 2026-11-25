@@ -4,6 +4,12 @@ const investigationController = require("../controllers/investigationController"
 const { protect, authorize } = require("../middleware/authMiddleware");
 
 router.get("/", protect, investigationController.getInvestigations);
+router.get(
+  "/analysts",
+  protect,
+  authorize("supervisor", "admin"),
+  investigationController.getEligibleAnalysts
+);
 router.get("/:id", protect, investigationController.getInvestigation);
 router.post(
   "/",
@@ -23,6 +29,7 @@ router.patch(
   authorize("supervisor", "admin"),
   investigationController.updateStatus
 );
+router.patch("/:id/progress", protect, investigationController.updateAnalystProgress);
 router.post("/:id/notes", protect, investigationController.addNote);
 
 module.exports = router;
