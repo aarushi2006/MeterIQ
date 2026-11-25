@@ -64,7 +64,8 @@ export default function ForecastingPage() {
 
   const [meterId, setMeterId] = useState("");
   const [horizon, setHorizon] = useState(24);
-  const [start, setStart] = useState("");
+  const [dayOffset, setDayOffset] = useState(0);
+  const [hourSlot, setHourSlot] = useState("all");
 
   const [forecast, setForecast] = useState(null);
   const [forecastLoading, setForecastLoading] = useState(false);
@@ -96,6 +97,29 @@ export default function ForecastingPage() {
     loadMeta();
   }, [loadMeta]);
 
+  const selectedCoverage = meta?.meterCoverage?.[meterId] || meta?.coverage;
+  const forwardStart = useMemo(() => {
+    if (meta?.mode !== "forward" || !selectedCoverage?.start) return undefined;
+    const date = new Date(selectedCoverage.start);
+    if (Number.isNaN(date.getTime())) return undefined;
+    date.setDate(date.getDate() + Number(dayOffset));
+    date.setHours(hourSlot === "all" ? 0 : Number(hourSlot), 0, 0, 0);
+    const pad = (value) => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:00:00`;
+  }, [meta?.mode, selectedCoverage?.start, dayOffset, hourSlot]);
+
+  const requestedHorizon = meta?.mode === "forward" && hourSlot !== "all" ? 1 : horizon;
+  const forecastDays = useMemo(() => {
+    if (!selectedCoverage?.start) return [];
+    const first = new Date(selectedCoverage.start);
+    if (Number.isNaN(first.getTime())) return [];
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(first);
+      date.setDate(date.getDate() + index);
+      return { value: index, label: index === 0 ? `Next day · ${formatDateTime(date)}` : `Day ${index + 1} · ${formatDateTime(date)}` };
+    });
+  }, [selectedCoverage?.start]);
+
   useEffect(() => {
     if (!meta?.available || !meterId) {
       setForecast(null);
@@ -107,7 +131,7 @@ export default function ForecastingPage() {
     setForecastError(null);
 
     forecastService
-      .getForecast(meterId, horizon, start || undefined)
+      .getForecast(meterId, requestedHorizon, forwardStart)
       .then((data) => {
         if (active) setForecast(data);
       })
@@ -124,7 +148,7 @@ export default function ForecastingPage() {
     return () => {
       active = false;
     };
-  }, [meta?.available, meterId, horizon, start, reloadKey]);
+  }, [meta?.available, meterId, requestedHorizon, forwardStart, reloadKey]);
 
   const chartData = useMemo(
     () =>
@@ -138,7 +162,6 @@ export default function ForecastingPage() {
   );
 
   const chartSummary = useMemo(() => computeForecastSummary(chartData), [chartData]);
-  const selectedCoverage = meta?.meterCoverage?.[meterId] || meta?.coverage;
   const modelInfo = meta?.model_info;
   const modelEntries = renderSummaryEntries(modelInfo?.model_summary);
   const baselineEntries = renderSummaryEntries(modelInfo?.baseline_summary);
@@ -192,7 +215,11 @@ export default function ForecastingPage() {
               <select
                 id="forecast-meter"
                 value={meterId}
-                onChange={(event) => setMeterId(event.target.value)}
+                onChange={(event) => {
+                  setMeterId(event.target.value);
+                  setDayOffset(0);
+                  setHourSlot("all");
+                }}
               >
                 {(meta.meters || []).map((meter) => (
                   <option key={meter} value={meter}>{meter}</option>
@@ -200,34 +227,31 @@ export default function ForecastingPage() {
               </select>
             </div>
 
+            {meta.mode === "forward" ? (
+              <div className="select-wrap">
+                <label htmlFor="forecast-day">Forecast day</label>
+                <select id="forecast-day" value={dayOffset} onChange={(event) => setDayOffset(Number(event.target.value))}>
+                  {forecastDays.map((day) => <option key={day.value} value={day.value}>{day.label}</option>)}
+                </select>
+              </div>
+            ) : null}
+
             {meta.mode === "forward" && (
               <div className="select-wrap">
-                <label htmlFor="forecast-start">Start date & time</label>
-                <input
-                  id="forecast-start"
-                  type="datetime-local"
-                  value={start}
-                  min={selectedCoverage?.start?.slice(0, 16)}
-                  max={selectedCoverage?.end?.slice(0, 16)}
-                  onChange={(event) => setStart(event.target.value)}
-                />
+                <label htmlFor="forecast-hour">Time slot</label>
+                <select id="forecast-hour" value={hourSlot} onChange={(event) => setHourSlot(event.target.value)}>
+                  <option value="all">All hours (daily profile)</option>
+                  {Array.from({ length: 24 }, (_, hour) => <option key={hour} value={hour}>{String(hour).padStart(2, "0")}:00</option>)}
+                </select>
               </div>
             )}
 
-            <div className="select-wrap">
+            {meta.mode !== "forward" && <div className="select-wrap">
               <label htmlFor="forecast-horizon">Horizon</label>
-              <select
-                id="forecast-horizon"
-                value={horizon}
-                onChange={(event) => setHorizon(Number(event.target.value))}
-              >
-                {(meta.horizons || [1]).map((hours) => (
-                  <option key={hours} value={hours}>
-                    {hours} hour{hours === 1 ? "" : "s"}
-                  </option>
-                ))}
+              <select id="forecast-horizon" value={horizon} onChange={(event) => setHorizon(Number(event.target.value))}>
+                {(meta.horizons || [1]).map((hours) => <option key={hours} value={hours}>{hours} hour{hours === 1 ? "" : "s"}</option>)}
               </select>
-            </div>
+            </div>}
 
             <div className="select-wrap">
               <label>Model</label>
@@ -240,6 +264,7 @@ export default function ForecastingPage() {
           <div className="filter-summary-row">
             <span><strong>{formatNumber(meta.meters?.length)}</strong> meters in artifact</span>
             <span><strong>{formatNumber(forecast?.points?.length)}</strong> points returned</span>
+            {meta.mode === "forward" && <span><strong>{hourSlot === "all" ? "24-hour profile" : `${String(hourSlot).padStart(2, "0")}:00 slot`}</strong></span>}
             <span>
               Metadata generated <strong>{formatDateTime(modelInfo?.generated_at || meta.generated_at)}</strong>
             </span>
@@ -268,7 +293,7 @@ export default function ForecastingPage() {
           onRetry={() => setReloadKey((current) => current + 1)}
         />
       ) : forecastLoading && !forecast ? (
-        <LoadingState label={`Generating ${horizon}-hour forecast view…`} />
+        <LoadingState label={`Loading ${requestedHorizon}-hour forecast view…`} />
       ) : forecast ? (
         <>
           <section className="stats kpi-grid-4">
@@ -301,7 +326,7 @@ export default function ForecastingPage() {
           <article className="card">
             <CardHeader
               title={`${forecast.mode === "forward" ? "Next-load forecast" : "Actual vs predicted"} · ${forecast.meter_id}`}
-              text={`${horizon}-hour horizon · ${forecast.unit || "kWh"} · generated ${formatDateTime(
+              text={`${forecast.horizon}-hour horizon · ${forecast.unit || "kWh"} · generated ${formatDateTime(
                 forecast.generated_at
               )}`}
               right={forecastLoading ? <span className="muted-text">Refreshing…</span> : null}
