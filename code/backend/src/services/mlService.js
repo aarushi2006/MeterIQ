@@ -4,6 +4,7 @@ require("dotenv").config();
 const ML_BASE_URL = (process.env.ML_SERVICE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 const ML_FALLBACK_URL = (process.env.ML_SERVICE_FALLBACK_URL || "https://meteriq-ml.onrender.com").replace(/\/$/, "");
 const ML_TIMEOUT_MS = Number(process.env.ML_SERVICE_TIMEOUT_MS || 60000);
+const ML_RETRY_ATTEMPTS = Number(process.env.ML_SERVICE_RETRY_ATTEMPTS || 4);
 
 class MLServiceError extends Error {
   constructor(message, status = 502, details = null) {
@@ -27,6 +28,7 @@ const clients = [ML_BASE_URL, ML_FALLBACK_URL]
   .map((baseURL) => ({ baseURL, client: createClient(baseURL) }));
 
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+const retryDelay = (attempt) => Math.min(12000, 1500 * 2 ** attempt);
 
 function normalizeError(error, endpoint) {
   if (error.response) {
@@ -68,7 +70,7 @@ const mlService = {
   async fetchFromML(endpoint, params = {}, options = {}) {
     let lastError;
     for (const { client } of clients) {
-      for (let attempt = 0; attempt < 2; attempt += 1) {
+      for (let attempt = 0; attempt < ML_RETRY_ATTEMPTS; attempt += 1) {
         try {
           const response = await client.get(endpoint, {
             params,
@@ -78,9 +80,9 @@ const mlService = {
         } catch (error) {
           lastError = error;
           if (error.response && error.response.status < 500) break;
-          // Render cold starts commonly need a few seconds. A short
-          // exponential retry is more reliable than instantly surfacing 502.
-          if (attempt === 0) await wait(1200);
+          // A sleeping hosted ML instance needs time to boot. Keep the
+          // request alive through the warm-up instead of surfacing a 502.
+          if (attempt < ML_RETRY_ATTEMPTS - 1) await wait(retryDelay(attempt));
         }
       }
     }
@@ -90,7 +92,7 @@ const mlService = {
   async postToML(endpoint, data = {}, options = {}) {
     let lastError;
     for (const { client } of clients) {
-      for (let attempt = 0; attempt < 2; attempt += 1) {
+      for (let attempt = 0; attempt < ML_RETRY_ATTEMPTS; attempt += 1) {
         try {
           const response = await client.post(endpoint, data, {
             timeout: options.timeout || ML_TIMEOUT_MS,
@@ -99,7 +101,7 @@ const mlService = {
         } catch (error) {
           lastError = error;
           if (error.response && error.response.status < 500) break;
-          if (attempt === 0) await wait(1200);
+          if (attempt < ML_RETRY_ATTEMPTS - 1) await wait(retryDelay(attempt));
         }
       }
     }

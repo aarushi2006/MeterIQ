@@ -38,9 +38,10 @@ export default function Header({ page, user, role, onToggleMobileMenu }) {
           const down = Object.entries(services)
             .filter(([, value]) => value === "down" || value === "disconnected")
             .map(([key]) => key);
+          const wakingMl = down.length === 1 && down[0] === "ml" && [502, 503, 504].includes(data?.ml?.status);
           setSystem({
             state: "degraded",
-            label: down.length ? `Degraded: ${down.join(", ")}` : "API degraded",
+            label: wakingMl ? "Waking analytics service…" : down.length ? `Degraded: ${down.join(", ")}` : "API degraded",
           });
         }
       } catch {

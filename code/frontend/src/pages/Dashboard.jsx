@@ -17,14 +17,14 @@ const DASHBOARD_CACHE_KEY = "meteriq_dashboard_snapshot";
 
 const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
-async function retryRequest(request, attempts = 3) {
+async function retryRequest(request, attempts = 4) {
   let lastError;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
       return await request();
     } catch (error) {
       lastError = error;
-      if (attempt < attempts - 1) await wait(700 * (attempt + 1));
+      if (attempt < attempts - 1) await wait(1500 * 2 ** attempt);
     }
   }
   throw lastError;

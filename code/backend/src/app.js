@@ -97,6 +97,7 @@ app.get("/api/health", async (req, res) => {
           }
         : {
             error: ml.error,
+          status: ml.status,
           },
     });
   } catch (error) {
